@@ -7,7 +7,7 @@ Wrap the payload inside `data` object, fields inside the payload `data` will var
     "data": {
         "volumeId": "...",
         "status": "...",
-        ...
+        // ...
     }
 }
 ```
@@ -16,10 +16,10 @@ Wrap the payload inside `data` object, fields inside the payload `data` will var
 
 ```json
 {
-    "success": true/false, ( whether the operation succeeded or not)
-    "message": "...", ( short helper message to what succeeded / failed )
+    "success": true/false, // whether the operation succeeded or not
+    "message": "...", // short helper message to what succeeded / failed
     "data": {
-        ... send data back ... ( if applicable )
+        // ... send data back ... ( if applicable )
     }
 }
 ```
