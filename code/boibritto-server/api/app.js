@@ -10,12 +10,12 @@ app.use(
     credentials: true,
   }),
 );
-
 app.use(express.json());
 
-// test route
-app.get("/ping", (req, res) => {
-  res.send("pong");
-});
+// import routers
+const testRouter = require("./routes/testRouter");
+
+// use routes
+app.use("/api/test", testRouter);
 
 module.exports = app;
