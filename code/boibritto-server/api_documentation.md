@@ -1,14 +1,15 @@
-# BoiBritto API Docs
+# BoiBritto API Documentation
 
-### Frontend payload format
-Wrap the payload inside `data` object, fields inside the payload `data` will vary depending on the route ( see endpoints doc below for respective  payload data fields )
+### Frontend Payload Format
+
+Wrap the payload inside a `data` object. Fields inside the payload `data` will vary depending on the route.
+
 ```json
 {
-    "data": {
-        "volumeId": "...",
-        "status": "...",
-        // ...
-    }
+  "data": {
+    "volumeId": "...",
+    "status": "..."
+  }
 }
 ```
 
@@ -16,331 +17,317 @@ Wrap the payload inside `data` object, fields inside the payload `data` will var
 
 ```json
 {
-    "success": true/false, // whether the operation succeeded or not
-    "message": "...", // short helper message to what succeeded / failed
-    "data": {
-        // ... send data back ... ( if applicable )
-    }
+  "success": true/false,
+  "message": "...",
+  "data": {
+    // optional response data
+  }
 }
 ```
 
+---
 
-<br>
+# Endpoints
 
 ## Auth Routes
 
-```
-POST   /api/auth/login
-```
+### Login User
 
-Logs in the user using Google account via Firebase Auth service.
+**POST** `/api/auth/login`
 
-<br>
+* **Input**: via Firebase Auth (Google login)
+* **Response**:
 
-```
-POST   /api/auth/signup
-```
+### Signup User
 
-Signs up the user (after first login, add some profile info).
+**POST** `/api/auth/signup`
 
-<br>
-
-```
-POST   /api/auth/logout
-```
-
-Logs out the current user.
+* **Input**: `req.body.data` (profile info)
+* **Response**:
 
 ---
 
 ## User Routes
 
-### Currently Logged-in User (`/api/users/me`)
+### Get Dashboard Data
 
-```
-GET    /api/users/me/dashboard
-```
+**GET** `/api/users/me/dashboard`
 
-Get dashboard data.
+* **Input**:
+* **Response**:
 
-<br>
+### View Own Profile
 
-```
-GET    /api/users/me/profile
-```
+**GET** `/api/users/me/profile`
 
-View own profile.
+* **Input**:
+* **Response**:
 
-<br>
+### Update Own Profile
 
-```
-PATCH  /api/users/me/profile
-```
+**PATCH** `/api/users/me/profile`
 
-Update profile data.
+* **Input**: `req.body.data`
+* **Response**:
 
-<br>
+## Collections
 
-#### Collections
+### Get Own Collections
 
-```
-GET    /api/users/me/collections
-```
+**GET** `/api/users/me/collections`
 
-Get all collections of the current user.
+* **Input**:
+* **Response**:
 
-<br>
+### Create a Collection
 
-```
-POST   /api/users/me/collections
-```
+**POST** `/api/users/me/collections`
 
-Create a new collection.
+* **Input**: `req.body.data`
+* **Response**:
 
-<br>
+### View a Collection
 
-```
-GET    /api/users/me/collections/:id
-```
+**GET** `/api/users/me/collections/:id`
 
-View specific collection.
+* **Input**: `:id` as route param
+* **Response**:
 
-<br>
+### Update a Collection
 
-```
-PATCH  /api/users/me/collections/:id
-```
+**PATCH** `/api/users/me/collections/:id`
 
-Update specific collection.
+* **Input**: `:id` as route param, `req.body.data`
+* **Response**:
 
-<br>
+### Delete a Collection
 
-```
-DELETE /api/users/me/collections/:id
-```
+**DELETE** `/api/users/me/collections/:id`
 
-Delete specific collection.
+* **Input**: `:id` as route param
+* **Response**:
 
-<br>
+## Reading List
 
-#### Reading List
+### Get Reading List
 
-```
-GET    /api/users/me/reading-list
-```
+**GET** `/api/users/me/reading-list`
 
-Get current user's reading list.
+* **Input**:
+* **Response**:
 
-<br>
+### Add to Reading List
 
-```
-POST   /api/users/me/reading-list
-```
+**POST** `/api/users/me/reading-list`
 
-Add a book to reading list (provide volumeId and status in request body).
+* **Input**: `req.body.data.volumeId`, `req.body.data.status`
+* **Response**:
 
-<br>
+### Update Reading List Entry
 
-```
-PATCH  /api/users/me/reading-list/:volumeId
-```
+**PATCH** `/api/users/me/reading-list/:volumeId`
 
-Update reading status or dates for a book.
+* **Input**: `:volumeId` as route param, `req.body.data`
+* **Response**:
 
-<br>
+### Remove from Reading List
 
-```
-DELETE /api/users/me/reading-list/:volumeId
-```
+**DELETE** `/api/users/me/reading-list/:volumeId`
 
-Remove a book from reading list.
+* **Input**: `:volumeId` as route param
+* **Response**:
 
-<br>
+## Blogs
 
-#### Blogs
 
-```
-GET    /api/users/me/blogs
-```
+### View Own Blogs
 
-View list of own blogs.
+**GET** `/api/users/me/blogs`
 
-<br>
+* **Input**:
+* **Response**:
 
-```
-POST   /api/users/me/blogs
-```
+### Create a Blog
 
-Create a new blog.
+**POST** `/api/users/me/blogs`
 
-<br>
+* **Input**: `req.body.data`
+* **Response**:
 
-```
-GET    /api/users/me/blogs/:id
-```
+### View a Blog
 
-View a specific blog.
+**GET** `/api/users/me/blogs/:id`
 
-<br>
+* **Input**: `:id` as route param
+* **Response**:
 
-```
-PATCH  /api/users/me/blogs/:id
-```
+### Edit a Blog
 
-Edit a specific blog.
+**PATCH** `/api/users/me/blogs/:id`
 
-<br>
+* **Input**: `:id` as route param, `req.body.data`
+* **Response**:
 
-```
-DELETE /api/users/me/blogs/:id
-```
+### Delete a Blog
 
-Delete a specific blog.
+**DELETE** `/api/users/me/blogs/:id`
 
-<br>
+* **Input**: `:id` as route param
+* **Response**:
 
-#### Discussions
+## Discussions
 
-```
-GET    /api/users/me/discussions
-```
+### View Own Discussions
 
-View list of own discussions.
+**GET** `/api/users/me/discussions`
 
-```
-POST   /api/users/me/discussions
-```
+* **Input**:
+* **Response**:
 
-Create/start a new discussion.
+### Start a Discussion
 
-```
-GET    /api/users/me/discussions/:id
-```
+**POST** `/api/users/me/discussions`
 
-View specific discussion.
+* **Input**: `req.body.data`
+* **Response**:
 
-```
-PATCH  /api/users/me/discussions/:id
-```
+### View a Discussion
 
-Update discussion.
+**GET** `/api/users/me/discussions/:id`
 
-```
-DELETE /api/users/me/discussions/:id
-```
+* **Input**: `:id` as route param
+* **Response**:
 
-Delete discussion.
+### Update a Discussion
+
+**PATCH** `/api/users/me/discussions/:id`
+
+* **Input**: `:id` as route param, `req.body.data`
+* **Response**:
+
+### Delete a Discussion
+
+**DELETE** `/api/users/me/discussions/:id`
+
+* **Input**: `:id` as route param
+* **Response**:
 
 ---
 
 ## Other User Routes
 
-### Public User Content
+### Public Profile Info
 
-```
-GET /api/users/:userId/profile
-```
+**GET** `/api/users/:userId/profile`
 
-View public profile info (username, display name, bio, avatar).
+* **Input**: `:userId` as route param
+* **Response**:
 
-```
-GET /api/users/:userId/reading-list
-```
+### Public Reading List
 
-View public portion of another user's reading list.
+**GET** `/api/users/:userId/reading-list`
 
-```
-GET /api/users/:userId/collections
-```
+* **Input**: `:userId` as route param
+* **Response**:
 
-View all public collections of a user.
+### Public Collections List
 
-```
-GET /api/users/:userId/collections/:collectionId
-```
+**GET** `/api/users/:userId/collections`
 
-View specific public collection.
+* **Input**: `:userId` as route param
+* **Query Params**: `?tag=horror`
+* **Response**:
 
-```
-GET /api/users/:userId/discussions
-```
+### Public Collection Detail
 
-View list of another user's discussions.
+**GET** `/api/users/:userId/collections/:collectionId`
 
-```
-GET /api/users/:userId/discussions/:discussionId
-```
+* **Input**: `:userId`, `:collectionId` as route params
+* **Response**:
 
-View a specific public discussion.
+### Public Discussions List
 
-Optional query parameters:
+**GET** `/api/users/:userId/discussions`
 
-```
-GET /api/users/:userId/collections?tag=horror
-GET /api/users/:userId/discussions?sort=latest
-```
+* **Input**: `:userId` as route param
+* **Query Params**: `?sort=latest`
+* **Response**:
+
+### Public Discussion Detail
+
+**GET** `/api/users/:userId/discussions/:discussionId`
+
+* **Input**: `:userId`, `:discussionId` as route params
+* **Response**:
 
 ---
 
 ## Public Collections
 
-```
-GET /api/collections/:id
-```
+### View a Public Collection
 
-View any public collection.
+**GET** `/api/collections/:id`
+
+* **Input**: `:id` as route param
+* **Response**:
 
 ---
 
 ## Discussion Routes
 
-```
-GET    /api/discussions/:id
-```
+### View a Discussion Thread
 
-View a discussion thread.
+**GET** `/api/discussions/:id`
 
-```
-POST   /api/discussions/:id/comments
-```
+* **Input**: `:id` as route param
+* **Response**:
 
-Add a comment to a discussion.
+### Add Comment to Discussion
 
-```
-GET    /api/discussions/:id/comments
-```
+**POST** `/api/discussions/:id/comments`
 
-Get all comments under a discussion.
+* **Input**: `:id` as route param, `req.body.data`
+* **Response**:
 
-```
-DELETE /api/comments/:commentId
-```
+### Get Comments for Discussion
 
-Delete own comment.
+**GET** `/api/discussions/:id/comments`
 
----
+* **Input**: `:id` as route param
+* **Response**:
 
-## Reading List Routes
+### Delete a Comment
 
-### User-Oriented
+**DELETE** `/api/comments/:commentId`
 
-```
-GET    /api/users/me/reading-list
-POST   /api/users/me/reading-list
-PATCH  /api/users/me/reading-list/:volumeId
-DELETE /api/users/me/reading-list/:volumeId
-```
-
-### Book-Oriented
-
-```
-POST   /api/books/:volumeId/reading-status
-GET    /api/books/:volumeId/reading-status
-DELETE /api/books/:volumeId/reading-status
-```
+* **Input**: `:commentId` as route param
+* **Response**:
 
 ---
 
-> Note: This is an initial draft. API endpoint details, parameters, response data and authentication/authorization checks will be expanded and updated as the project evolves.
+## Reading List Routes (Alternate Book-Oriented)
 
+### Add/Update Reading Status by Book
 
+**POST** `/api/books/:volumeId/reading-status`
+
+* **Input**: `:volumeId` as route param, `req.body.data`
+* **Response**:
+
+### Get Reading Status for Book
+
+**GET** `/api/books/:volumeId/reading-status`
+
+* **Input**: `:volumeId` as route param
+* **Response**:
+
+### Remove Reading Status for Book
+
+**DELETE** `/api/books/:volumeId/reading-status`
+
+* **Input**: `:volumeId` as route param
+* **Response**:
+
+---
+
+> This document is a work in progress. Details such as parameters, response schemas, and validation rules will be updated as development continues.
