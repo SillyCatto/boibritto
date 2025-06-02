@@ -17,6 +17,7 @@ describe("GET /api/test/protected", () => {
     const password = "testpass123";
 
     const idToken = await createTestUserAndGetIdToken({ email, password });
+    console.log(`ID token: ${idToken}`);
 
     const res = await request(app)
       .get("/api/test/protected")
