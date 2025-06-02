@@ -33,17 +33,112 @@ Wrap the payload inside a `data` object. Fields inside the payload `data` will v
 
 ### Login User
 
-**POST** `/api/auth/login`
+**GET** `/api/auth/login`
 
-* **Input**: via Firebase Auth (Google login)
-* **Response**:
+Log the user in via Firebase ID Token, if this is the first time user is logging in, `newUser` is set to `true`, redirect to signup page in that case to register the account.
 
+#### Headers:
+
+```
+Authorization: Bearer <FIREBASE_ID_TOKEN>
+```
+
+#### Response (if user exists):
+
+```json
+{
+  "success": true,
+  "message": "User login successful",
+  "data": {
+    "newUser": false,
+    "user": {
+      "_id": "665be...",
+      "uid": "55eO2tO...",
+      "email": "raiyanmuhtasim@gmail.com",
+      "displayName": "Raiyan",
+      "avatar": "https://lh3.googleusercontent.com/...",
+      "username": "raiyan123",
+      "bio": "I love reading sci-fi and writing fiction.",
+      "interestedGenres": ["Sci-fi", "Fantasy"],
+      "createdAt": "2025-06-02T10:10:15.123Z",
+      "updatedAt": "2025-06-02T10:10:15.123Z",
+      "__v": 0
+    }
+  }
+}
+```
+
+#### Response (if user is new, first time login, redirect to signup page):
+
+```json
+{
+  "success": true,
+  "message": "User login successful",
+  "data": {
+    "newUser": true,
+    "user": null
+  }
+}
+```
+
+---
 ### Signup User
 
 **POST** `/api/auth/signup`
 
-* **Input**: `req.body.data` (profile info)
-* **Response**:
+ask for a unique username for the platform, interestedGenre (genre list given in schema doc) and user bio of max 500 characters
+
+#### Headers:
+
+```
+Authorization: Bearer <FIREBASE_ID_TOKEN>
+Content-Type: application/json
+```
+
+#### Request Body:
+`req.user` attached by Firebase\
+`req.body`:
+```json
+{
+  "username": "raiyan123",
+  "bio": "I love reading sci-fi and writing fiction.",
+  "interestedGenres": ["Sci-fi", "Fantasy"]
+}
+```
+
+#### Response:
+
+```json
+{
+  "success": true,
+  "message": "User account created successfully",
+  "data": {
+    "user": {
+      "_id": "665be7481a3e28b6e447c02c",
+      "uid": "55eO2tOleXeVmvcMucGHkrSgTVa2",
+      "email": "raiyanmuhtasim@gmail.com",
+      "displayName": "Raiyan",
+      "avatar": "https://lh3.googleusercontent.com/...",
+      "username": "raiyan123",
+      "bio": "I love reading sci-fi and writing fiction.",
+      "interestedGenres": ["Sci-fi", "Fantasy"],
+      "createdAt": "2025-06-02T10:10:15.123Z",
+      "updatedAt": "2025-06-02T10:10:15.123Z",
+      "__v": 0
+    }
+  }
+}
+```
+
+#### Error Response (User already exists):
+
+```json
+{
+  "success": false,
+  "message": "User already exists",
+  "error": null
+}
+```
 
 ---
 
