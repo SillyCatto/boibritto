@@ -3,15 +3,15 @@ const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
 const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
 
-const authRouter = express.Router();
+const testRouter = express.Router();
 
 // test regular route
-authRouter.get("/ping", (req, res) => {
+testRouter.get("/ping", (req, res) => {
   res.status(HTTP.OK).send("pong");
 });
 
 // test protected
-authRouter.get("/protected", verifyFirebaseToken, (req, res) => {
+testRouter.get("/protected", verifyFirebaseToken, (req, res) => {
   try {
     const user = req.user;
 
@@ -27,4 +27,4 @@ authRouter.get("/protected", verifyFirebaseToken, (req, res) => {
   }
 });
 
-module.exports = authRouter;
+module.exports = testRouter;
