@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { GENRES } = require("../utils/constants");
+
 const userSchema = new mongoose.Schema({
         uid: { type: String, required: true, unique: true }, // Firebase UID
         email: { type: String, required: true, unique: true },
