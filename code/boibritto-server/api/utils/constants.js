@@ -1,0 +1,30 @@
+const BOOK_GENRES = [
+    "fiction",
+    "non-fiction",
+    "fantasy",
+    "sci-fi",
+    "mystery",
+    "romance",
+    "thriller",
+    "historical",
+    "biography",
+    "poetry",
+    "self-help",
+    "horror",
+    "drama",
+    "adventure",
+    "comedy",
+    "spirituality",
+    "philosophy",
+    "science",
+    "psychology",
+    "young-adult",
+    "children",
+    "classic",
+    "graphic-novel",
+    "memoir",
+    "education",
+    "others"
+];
+
+export const GENRES = Object.freeze(BOOK_GENRES);
