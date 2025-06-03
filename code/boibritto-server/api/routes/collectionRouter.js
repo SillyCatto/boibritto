@@ -44,4 +44,34 @@ collectionRouter.get("/", verifyFirebaseToken, async (req, res) => {
   }
 });
 
+
+collectionRouter.post("/", verifyFirebaseToken, async (req, res) => {
+    try {
+        const { data } = req.body;
+        if (!data || !data.title) {
+            return sendError(res, HTTP.BAD_REQUEST, "Title is required");
+        }
+
+        const newCollection = new Collection({
+            user: req.user._id || req.user.uid,
+            title: data.title,
+            description: data.description || "",
+            books: Array.isArray(data.books) ? data.books : [],
+            tags: Array.isArray(data.tags) ? data.tags : [],
+            visibility: data.visibility || "public",
+        });
+
+        await newCollection.save();
+
+        // Populate user fields for response consistency
+        await newCollection.populate("user", "displayName username avatar");
+
+        return sendSuccess(res, HTTP.CREATED, "Collection created successfully", {
+            collection: newCollection,
+        });
+    } catch (err) {
+        return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to create collection", err);
+    }
+});
+
 module.exports = collectionRouter;
