@@ -19,9 +19,11 @@ app.use(express.json());
 // import routers
 const testRouter = require("./routes/testRouter");
 const authRouter = require("./routes/authRouter");
+const collectionRouter = require("./routes/collectionRouter");
 
 // use routes
 app.use("/api/test", testRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/collections", collectionRouter);
 
 module.exports = app;
