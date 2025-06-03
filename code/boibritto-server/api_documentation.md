@@ -2,7 +2,7 @@
 
 ### Frontend Payload Format
 
-Wrap the payload inside a `data` object. Fields inside the payload `data` will vary depending on the route.
+Wrap the payload inside a `data` object (req.body.data). Fields inside the payload `data` will vary depending on the route.
 
 ```json
 {
@@ -97,7 +97,7 @@ Content-Type: application/json
 
 #### Request Body:
 `req.user` attached by Firebase\
-`req.body`:
+`req.body.data`:
 ```json
 {
   "username": "raiyan123",
