@@ -74,4 +74,28 @@ collectionRouter.post("/", verifyFirebaseToken, async (req, res) => {
     }
 });
 
+
+collectionRouter.get("/:id", verifyFirebaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id || req.user.uid;
+
+    const collection = await Collection.findById(id).populate("user", "displayName username avatar");
+    if (!collection) {
+      return sendError(res, HTTP.NOT_FOUND, "Collection not found");
+    }
+
+    const isOwner = collection.user._id?.toString() === userId?.toString() || collection.user.uid === userId;
+    if (collection.visibility !== "public" && !isOwner) {
+      return sendError(res, HTTP.FORBIDDEN, "You do not have access to this collection");
+    }
+
+    return sendSuccess(res, HTTP.OK, "Collection fetched successfully", {
+      collection,
+    });
+  } catch (err) {
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to fetch collection", err);
+  }
+});
+
 module.exports = collectionRouter;
