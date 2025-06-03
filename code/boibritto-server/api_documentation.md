@@ -54,7 +54,7 @@ Authorization: Bearer <FIREBASE_ID_TOKEN>
     "user": {
       "_id": "665be...",
       "uid": "55eO2tO...",
-      "email": "raiyanmuhtasim@gmail.com",
+      "email": "raiyan@gmail.com",
       "displayName": "Raiyan",
       "avatar": "https://lh3.googleusercontent.com/...",
       "username": "raiyan123",
