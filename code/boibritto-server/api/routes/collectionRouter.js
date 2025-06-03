@@ -143,4 +143,27 @@ collectionRouter.patch("/:id", verifyFirebaseToken, async (req, res) => {
   }
 });
 
+
+collectionRouter.delete("/:id", verifyFirebaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id || req.user.uid;
+
+    const collection = await Collection.findById(id);
+    if (!collection) {
+      return sendError(res, HTTP.NOT_FOUND, "Collection not found");
+    }
+
+    if (collection.user.toString() !== userId.toString()) {
+      return sendError(res, HTTP.FORBIDDEN, "You do not have permission to delete this collection");
+    }
+
+    await collection.deleteOne();
+
+    return sendSuccess(res, HTTP.OK, "Collection deleted successfully");
+  } catch (err) {
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to delete collection", err);
+  }
+});
+
 module.exports = collectionRouter;
