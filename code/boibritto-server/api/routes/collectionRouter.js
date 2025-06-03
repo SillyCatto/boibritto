@@ -98,4 +98,49 @@ collectionRouter.get("/:id", verifyFirebaseToken, async (req, res) => {
   }
 });
 
+
+collectionRouter.patch("/:id", verifyFirebaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data } = req.body;
+    const userId = req.user._id || req.user.uid;
+
+    const collection = await Collection.findById(id);
+    if (!collection) {
+      return sendError(res, HTTP.NOT_FOUND, "Collection not found");
+    }
+
+    if (collection.user.toString() !== userId.toString()) {
+      return sendError(res, HTTP.FORBIDDEN, "You do not have permission to update this collection");
+    }
+
+    // Update fields if provided
+    if (data.title !== undefined) collection.title = data.title;
+    if (data.description !== undefined) collection.description = data.description;
+    if (data.visibility !== undefined) collection.visibility = data.visibility;
+
+
+    // Add a book
+    if (data.addBook) {
+      if (!collection.books.some(b => b.volumeId === data.addBook)) {
+        collection.books.push({ volumeId: data.addBook });
+      }
+    }
+
+    // Remove a book
+    if (data.removeBook) {
+      collection.books = collection.books.filter(b => b.volumeId !== data.removeBook);
+    }
+
+    await collection.save();
+    await collection.populate("user", "displayName username avatar");
+
+    return sendSuccess(res, HTTP.OK, "Collection updated successfully", {
+      collection,
+    });
+  } catch (err) {
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to update collection", err);
+  }
+});
+
 module.exports = collectionRouter;
