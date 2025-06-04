@@ -54,8 +54,13 @@ collectionRouter.get("/", verifyFirebaseToken, async (req, res) => {
 collectionRouter.post("/", verifyFirebaseToken, async (req, res) => {
   try {
     const { data } = req.body;
-    if (!data || !data.title) {
-      return sendError(res, HTTP.BAD_REQUEST, "Title is required");
+
+    if (!data) {
+      return sendError(res, HTTP.BAD_REQUEST, "missing data to update");
+    }
+
+    if (!data.title) {
+      return sendError(res, HTTP.BAD_REQUEST, "collection title is required");
     }
 
     const newCollection = new Collection({
@@ -130,6 +135,14 @@ collectionRouter.patch("/:id", verifyFirebaseToken, async (req, res) => {
     const { data } = req.body;
     const userId = req.user._id;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP.BAD_REQUEST, "invalid collection ID");
+    }
+
+    if (!data) {
+      return sendError(res, HTTP.BAD_REQUEST, "missing data to update");
+    }
+
     const collection = await Collection.findById(id);
     if (!collection) {
       return sendError(res, HTTP.NOT_FOUND, "Collection not found");
@@ -183,6 +196,10 @@ collectionRouter.delete("/:id", verifyFirebaseToken, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP.BAD_REQUEST, "invalid collection ID");
+    }
 
     const collection = await Collection.findById(id);
     if (!collection) {
