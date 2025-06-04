@@ -1,5 +1,6 @@
 const express = require("express");
 const Collection = require("../models/collection.models");
+const mongoose = require("mongoose");
 const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
 const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
@@ -88,6 +89,10 @@ collectionRouter.get("/:id", verifyFirebaseToken, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP.BAD_REQUEST, "invalid collection ID");
+    }
 
     const collection = await Collection.findById(id).populate(
       "user",
