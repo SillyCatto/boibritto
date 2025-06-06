@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
 const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
+const { checkOwner } = require("../utils/checkOwner");
 
 const collectionRouter = express.Router();
 
@@ -107,7 +108,7 @@ collectionRouter.get("/:id", verifyFirebaseToken, async (req, res) => {
       return sendError(res, HTTP.NOT_FOUND, "Collection not found");
     }
 
-    const isOwner = collection.user._id?.toString() === userId?.toString();
+    const isOwner = checkOwner(collection.user, userId);
     if (collection.visibility !== "public" && !isOwner) {
       return sendError(
         res,
