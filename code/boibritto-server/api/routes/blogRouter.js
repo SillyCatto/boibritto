@@ -102,4 +102,45 @@ blogRouter.get("/:id", async (req, res) => {
   }
 });
 
+
+blogRouter.patch("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data } = req.body;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP.BAD_REQUEST, "Invalid blog ID");
+    }
+
+    if (!data) {
+      return sendError(res, HTTP.BAD_REQUEST, "Missing data to update");
+    }
+
+    const blog = await Blog.findById(id);
+    if (!blog) {
+      return sendError(res, HTTP.NOT_FOUND, "Blog not found");
+    }
+
+    if (blog.user.toString() !== userId.toString()) {
+      return sendError(res, HTTP.FORBIDDEN, "You do not have permission to update this blog");
+    }
+
+    // Update given fields
+    if (data.title !== undefined) blog.title = data.title;
+    if (data.content !== undefined) blog.content = data.content;
+    if (data.visibility !== undefined) blog.visibility = data.visibility;
+    if (data.spoilerAlert !== undefined) blog.spoilerAlert = data.spoilerAlert;
+    if (data.genres !== undefined) blog.genres = data.genres;
+
+    await blog.save();
+    await blog.populate("user", "displayName username avatar");
+
+    return sendSuccess(res, HTTP.OK, "Blog updated successfully", { blog });
+  } catch (err) {
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to update blog", err);
+  }
+});
+
+
 module.exports = blogRouter;
