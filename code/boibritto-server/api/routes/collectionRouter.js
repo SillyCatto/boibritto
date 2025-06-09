@@ -1,13 +1,12 @@
 const express = require("express");
 const Collection = require("../models/collection.models");
 const mongoose = require("mongoose");
-const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
 const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
 
 const collectionRouter = express.Router();
 
-collectionRouter.get("/", verifyFirebaseToken, async (req, res) => {
+collectionRouter.get("/", async (req, res) => {
   try {
     const { owner, page = 1 } = req.query;
     const PAGE_SIZE = 20;
@@ -51,7 +50,7 @@ collectionRouter.get("/", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-collectionRouter.post("/", verifyFirebaseToken, async (req, res) => {
+collectionRouter.post("/", async (req, res) => {
   try {
     const { data } = req.body;
 
@@ -90,7 +89,7 @@ collectionRouter.post("/", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-collectionRouter.get("/:id", verifyFirebaseToken, async (req, res) => {
+collectionRouter.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
@@ -108,6 +107,7 @@ collectionRouter.get("/:id", verifyFirebaseToken, async (req, res) => {
     }
 
     const isOwner = collection.user._id?.toString() === userId?.toString();
+
     if (collection.visibility !== "public" && !isOwner) {
       return sendError(
         res,
@@ -129,7 +129,7 @@ collectionRouter.get("/:id", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-collectionRouter.patch("/:id", verifyFirebaseToken, async (req, res) => {
+collectionRouter.patch("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { data } = req.body;
@@ -192,7 +192,7 @@ collectionRouter.patch("/:id", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-collectionRouter.delete("/:id", verifyFirebaseToken, async (req, res) => {
+collectionRouter.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;

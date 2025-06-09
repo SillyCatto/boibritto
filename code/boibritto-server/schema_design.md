@@ -84,16 +84,31 @@ module.exports = mongoose.model("User", userSchema);
 Will work on it later for admin panel, but just keep the schema ready
 
 ```js
+const mongoose = require("mongoose");
+
 const adminSchema = new mongoose.Schema(
-  {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    role: { type: String, enum: ["superadmin", "moderator"], default: "moderator" },
-    permissions: [String],
-  },
-  { timestamps: true }
+        {
+          uid: { type: String, required: true, unique: true }, // Firebase UID (manual registration)
+          email: { type: String, required: true, unique: true },
+          name: { type: String, required: true }, // Admin's full name
+          avatar: { type: String }, // optional
+
+          role: {
+            type: String,
+            enum: ["superadmin", "moderator"],
+            default: "moderator"
+          },
+
+          permissions: {
+            type: [String],
+            default: [] // e.g., ["manageUsers", "reviewReports"]
+          }
+        },
+        { timestamps: true }
 );
 
 module.exports = mongoose.model("Admin", adminSchema);
+
 ```
 
 ---
@@ -340,4 +355,81 @@ const userBookSchema = new mongoose.Schema(
   { timestamps: true }
 );
 ```
+---
+
+Here's a schema for reporting content, designed to be flexible and compatible with all types of user-generated content in BoiBritto (blogs, discussions, comments, user books, etc.):
+
+---
+
+### 🚨 `Report` Schema
+
+```js
+const mongoose = require("mongoose");
+
+const reportSchema = new mongoose.Schema(
+  {
+    reportedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+
+    // What is being reported
+    contentType: {
+      type: String,
+      enum: ["profile", "blog", "discussion", "comment", "userBook", "collection"],
+      required: true
+    },
+
+    contentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true
+    },
+
+    reason: {
+      type: String,
+      enum: [
+        "inappropriate",
+        "spam",
+        "harassment",
+        "plagiarism",
+        "false information",
+        "copyright violation",
+        "other"
+      ],
+      required: true
+    },
+
+    description: {
+      type: String,
+      maxlength: 500
+    },
+
+    status: {
+      type: String,
+      enum: ["pending", "reviewed", "dismissed", "action-taken"],
+      default: "pending"
+    },
+
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin"
+    }
+  },
+  { timestamps: true }
+);
+
+reportSchema.index({ contentType: 1, contentId: 1, reportedBy: 1 }, { unique: true });
+
+module.exports = mongoose.model("Report", reportSchema);
+```
+
+---
+
+**How It Works**
+
+* A report is tied to a `contentType` and its corresponding `contentId`.
+* A user can report a particular item only once (enforced via unique index).
+* Admins can filter by `status` to process new reports.
+* Actions like hiding/removing content would be handled externally by the moderator/admin dashboard logic.
 
