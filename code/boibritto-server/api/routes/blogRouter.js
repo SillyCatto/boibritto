@@ -76,4 +76,30 @@ blogRouter.post("/", async (req, res) => {
   }
 });
 
+
+blogRouter.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP.BAD_REQUEST, "Invalid blog ID");
+    }
+
+    const blog = await Blog.findById(id).populate("user", "displayName username avatar");
+    if (!blog) {
+      return sendError(res, HTTP.NOT_FOUND, "Blog not found");
+    }
+
+    const isOwner = blog.user._id?.toString() === userId?.toString();
+    if (blog.visibility !== "public" && !isOwner) {
+      return sendError(res, HTTP.FORBIDDEN, "You do not have access to this blog");
+    }
+
+    return sendSuccess(res, HTTP.OK, "Blog fetched successfully", { blog });
+  } catch (err) {
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to fetch blog", err);
+  }
+});
+
 module.exports = blogRouter;
