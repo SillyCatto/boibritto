@@ -1,17 +1,24 @@
 const mongoose = require("mongoose");
 
-
-// will update the admin model latter
-
 const adminSchema = new mongoose.Schema(
-    {
-        user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-        role: { type: String, enum: ["superadmin", "moderator"], default: "moderator" },
-        permissions: [String],
+  {
+    uid: { type: String, required: true, unique: true }, // Firebase UID
+    email: { type: String, required: true, unique: true },
+    name: { type: String, required: true }, // Admin full name
+    avatar: { type: String }, // Optional: admin profile image
+
+    role: {
+      type: String,
+      enum: ["superadmin", "moderator"],
+      default: "moderator"
     },
-    {
-        timestamps: true
+
+    permissions: {
+      type: [String],
+      default: [] // ex- ["manageUsers", "reviewReports"]
     }
+  },
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Admin", adminSchema);

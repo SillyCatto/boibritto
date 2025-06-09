@@ -9,6 +9,9 @@ pids
 *.seed
 *.pid.lock
 
+# utility scripts
+registerAdmin.js
+
 # Dependency directories
 node_modules/
 jspm_packages/
