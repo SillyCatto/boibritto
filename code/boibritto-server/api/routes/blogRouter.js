@@ -3,6 +3,8 @@ const Blog = require("../models/blog.models");
 const mongoose = require("mongoose");
 const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
+const { GENRES } = require("../utils/constants");
+
 
 const blogRouter = express.Router();
 
@@ -41,6 +43,37 @@ blogRouter.get("/", async (req, res) => {
 });
 
 
+blogRouter.post("/", async (req, res) => {
+  try {
+    const { data } = req.body;
+    if (!data) {
+      return sendError(res, HTTP.BAD_REQUEST, "Missing blog data");
+    }
 
+    const { title, content, visibility = "public", spoilerAlert, genres = [] } = data;
+
+    if (!title || !content || typeof spoilerAlert !== "boolean") {
+      return sendError(res, HTTP.BAD_REQUEST, "Missing required fields");
+    }
+
+    // visibility and genres should be selected from predefined options in the frontend
+
+    const newBlog = new Blog({
+      user: req.user._id,
+      title,
+      content,
+      visibility,
+      spoilerAlert,
+      genres,
+    });
+
+    await newBlog.save();
+    await newBlog.populate("user", "displayName username avatar");
+
+    return sendSuccess(res, HTTP.CREATED, "Blog created successfully", { blog: newBlog });
+  } catch (err) {
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to create blog", err);
+  }
+});
 
 module.exports = blogRouter;
