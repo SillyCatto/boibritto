@@ -143,4 +143,31 @@ blogRouter.patch("/:id", async (req, res) => {
 });
 
 
+blogRouter.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP.BAD_REQUEST, "Invalid blog ID");
+    }
+
+    const blog = await Blog.findById(id);
+    if (!blog) {
+      return sendError(res, HTTP.NOT_FOUND, "Blog not found");
+    }
+
+    if (blog.user.toString() !== userId.toString()) {
+      return sendError(res, HTTP.FORBIDDEN, "You do not have permission to delete this blog");
+    }
+
+    await blog.deleteOne();
+
+    return sendSuccess(res, HTTP.OK, "Blog deleted successfully");
+  } catch (err) {
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to delete blog", err);
+  }
+});
+
+
 module.exports = blogRouter;
