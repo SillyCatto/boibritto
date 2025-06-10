@@ -4,6 +4,11 @@ const cors = require("cors");
 const verifyUser = require("./middlewares/verifyUser");
 const verifyAdmin = require("./middlewares/verifyAdmin");
 
+const {
+  jsonErrorHandler,
+  globalErrorHandler,
+} = require("./middlewares/errorHandler");
+
 const app = express();
 
 // global middleware
@@ -19,6 +24,8 @@ app.use(
 );
 app.use(express.json());
 
+app.use(jsonErrorHandler);
+
 // import routers
 const testRouter = require("./routes/testRouter");
 const authRouter = require("./routes/authRouter");
@@ -33,5 +40,7 @@ app.use("/api/collections", verifyUser, collectionRouter);
 app.use("/api/blogs", verifyUser, blogRouter);
 
 app.use("/api/boibritto-internals/admin", verifyAdmin, adminRouter);
+
+app.use(globalErrorHandler);
 
 module.exports = app;

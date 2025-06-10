@@ -12,6 +12,19 @@ const jsonErrorHandler = (err, req, res, next) => {
   next(err);
 };
 
+// const routeNotFoundHandler = (err, req, res, next) => {};
+
+const globalErrorHandler = (err, req, res, next) => {
+  console.error("Unhandled Error:", err);
+
+  return sendError(
+    res,
+    HTTP.INTERNAL_SERVER_ERROR,
+    "An unexpected error occurred",
+  );
+};
+
 module.exports = {
   jsonErrorHandler,
+  globalErrorHandler,
 };
