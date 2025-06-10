@@ -1,6 +1,6 @@
 const chalk = require("chalk");
+const chk = chalk.default || chalk;
 
-// format timestamp
 const getTimestamp = () => {
   const now = new Date();
 
@@ -15,47 +15,52 @@ const getTimestamp = () => {
   });
 };
 
-// log info message to console.
-
+// log info message
 const logInfo = (message, data = null) => {
-  const prefix = chalk.bgBlue.white.bold(" INFO ");
-  const timestamp = chalk.dim(getTimestamp());
-  console.log(`${prefix} ${timestamp} ${chalk.blue(message)}`);
+  const prefix = chk.bgBlue.black.bold(" INFO ");
+  const timestamp = chk.dim(getTimestamp());
+
+  console.log("\n");
+
+  console.log(`${prefix} ${timestamp} ${chk.blue.bold(message)}`);
   if (data !== null) {
-    console.log(chalk.blue("    Data:"), data);
+    console.log(chk.blue.underline("data:"), data);
   }
 };
 
 // log warning
 const logWarning = (message, data = null) => {
-  const prefix = chalk.bgYellow.black.bold(" WARN ");
-  const timestamp = chalk.dim(getTimestamp());
-  console.warn(`${prefix} ${timestamp} ${chalk.yellow(message)}`);
+  const prefix = chk.bgYellow.black.bold(" WARN ");
+  const timestamp = chk.dim(getTimestamp());
+
+  console.log("\n");
+
+  console.warn(`${prefix} ${timestamp} ${chk.yellow.bold(message)}`);
   if (data !== null) {
-    console.warn(chalk.yellow("    Data:"), data);
+    console.warn(chk.yellow.underline("data:"), data);
   }
 };
 
 // log error
-
 const logError = (message, error = null) => {
-  const prefix = chalk.bgRed.white.bold(" ERROR ");
-  const timestamp = chalk.dim(getTimestamp());
-  console.error(`${prefix} ${timestamp} ${chalk.red(message)}`);
+  const prefix = chk.bgRed.black.bold(" ERROR ");
+  const timestamp = chk.dim(getTimestamp());
+
+  console.log("\n");
+
+  console.error(`${prefix} ${timestamp} ${chk.red.bold(message)}`);
 
   if (error !== null) {
-    // If it's an Error instance, log its message and stack
     if (error instanceof Error) {
       console.error(
-        chalk.red("    Error Message:"),
-        chalk.red.bold(error.message),
+        chk.red.underline("error message:"),
+        chk.red(error.message),
       );
       if (error.stack) {
-        console.error(chalk.red("    Stack Trace:"), chalk.red(error.stack));
+        console.error(chk.red.underline("stack trace:"), chk.red(error.stack));
       }
     } else {
-      // Otherwise, log the provided data directly
-      console.error(chalk.red("    Details:"), error);
+      console.error(chk.red.underline("details:"), error);
     }
   }
 };
