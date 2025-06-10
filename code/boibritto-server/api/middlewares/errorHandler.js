@@ -17,7 +17,11 @@ const routeNotFoundHandler = (req, res, next) => {
 };
 
 const globalErrorHandler = (err, req, res, next) => {
-  console.error("unhandled error: ", err);
+  const errorObj = {
+    error: err.message,
+    stack: err.stack,
+  };
+  console.error("❌ unhandled error\n", errorObj);
 
   return sendError(
     res,
