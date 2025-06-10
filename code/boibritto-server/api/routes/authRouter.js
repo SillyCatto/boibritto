@@ -3,9 +3,9 @@ const router = express.Router();
 const HTTP = require("../utils/httpStatus");
 const User = require("../models/user.models");
 const { sendSuccess, sendError } = require("../utils/response");
-const verifyFirebaseTokenBasic = require("../middlewares/verifyFirebaseTokenBasic");
+const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
 
-router.get("/login", verifyFirebaseTokenBasic, async (req, res) => {
+router.get("/login", verifyFirebaseToken, async (req, res) => {
   try {
     const existingUser = await User.findOne({ uid: req.user.uid });
 
@@ -25,7 +25,7 @@ router.get("/login", verifyFirebaseTokenBasic, async (req, res) => {
   }
 });
 
-router.post("/signup", verifyFirebaseTokenBasic, async (req, res) => {
+router.post("/signup", verifyFirebaseToken, async (req, res) => {
   try {
     const { username, bio, interestedGenres = [] } = req.body;
 

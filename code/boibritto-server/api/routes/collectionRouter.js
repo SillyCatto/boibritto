@@ -1,12 +1,12 @@
 const express = require("express");
 const Collection = require("../models/collection.models");
-const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
+const mongoose = require("mongoose");
 const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
 
 const collectionRouter = express.Router();
 
-collectionRouter.get("/", verifyFirebaseToken, async (req, res) => {
+collectionRouter.get("/", async (req, res) => {
   try {
     const { owner, page = 1 } = req.query;
     const PAGE_SIZE = 20;
@@ -19,19 +19,20 @@ collectionRouter.get("/", verifyFirebaseToken, async (req, res) => {
       isPaginated = true;
     } else if (owner === "me") {
       // All collections of the authenticated user (private + public)
-      filter.user = req.user._id || req.user.uid;
+      filter.user = req.user._id;
     } else {
       // Public collections of the specified user
       filter.user = owner;
       filter.visibility = "public";
     }
 
-    let query = Collection.find(filter).populate("user", "displayName username avatar");
+    let query = Collection.find(filter).populate(
+      "user",
+      "displayName username avatar",
+    );
 
     if (isPaginated) {
-      query = query
-        .skip((page - 1) * PAGE_SIZE)
-        .limit(PAGE_SIZE);
+      query = query.skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE);
     }
 
     const collections = await query.sort({ createdAt: -1 });
@@ -40,70 +41,107 @@ collectionRouter.get("/", verifyFirebaseToken, async (req, res) => {
       collections,
     });
   } catch (err) {
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to fetch collections", err);
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to fetch collections",
+      err,
+    );
   }
 });
 
+collectionRouter.post("/", async (req, res) => {
+  try {
+    const { data } = req.body;
 
-collectionRouter.post("/", verifyFirebaseToken, async (req, res) => {
-    try {
-        const { data } = req.body;
-        if (!data || !data.title) {
-            return sendError(res, HTTP.BAD_REQUEST, "Title is required");
-        }
-
-        const newCollection = new Collection({
-            user: req.user._id || req.user.uid,
-            title: data.title,
-            description: data.description || "",
-            books: Array.isArray(data.books) ? data.books : [],
-            tags: Array.isArray(data.tags) ? data.tags : [],
-            visibility: data.visibility || "public",
-        });
-
-        await newCollection.save();
-
-        // Populate user fields for response consistency
-        await newCollection.populate("user", "displayName username avatar");
-
-        return sendSuccess(res, HTTP.CREATED, "Collection created successfully", {
-            collection: newCollection,
-        });
-    } catch (err) {
-        return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to create collection", err);
+    if (!data) {
+      return sendError(res, HTTP.BAD_REQUEST, "missing data to update");
     }
+
+    if (!data.title) {
+      return sendError(res, HTTP.BAD_REQUEST, "collection title is required");
+    }
+
+    const newCollection = new Collection({
+      user: req.user._id,
+      title: data.title,
+      description: data.description || "",
+      books: Array.isArray(data.books) ? data.books : [],
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      visibility: data.visibility || "public",
+    });
+
+    await newCollection.save();
+
+    // Populate user fields for response consistency
+    await newCollection.populate("user", "displayName username avatar");
+
+    return sendSuccess(res, HTTP.CREATED, "Collection created successfully", {
+      collection: newCollection,
+    });
+  } catch (err) {
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to create collection",
+      err,
+    );
+  }
 });
 
-
-collectionRouter.get("/:id", verifyFirebaseToken, async (req, res) => {
+collectionRouter.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user._id || req.user.uid;
+    const userId = req.user._id;
 
-    const collection = await Collection.findById(id).populate("user", "displayName username avatar");
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP.BAD_REQUEST, "invalid collection ID");
+    }
+
+    const collection = await Collection.findById(id).populate(
+      "user",
+      "displayName username avatar",
+    );
     if (!collection) {
       return sendError(res, HTTP.NOT_FOUND, "Collection not found");
     }
 
-    const isOwner = collection.user._id?.toString() === userId?.toString() || collection.user.uid === userId;
+    const isOwner = collection.user._id?.toString() === userId?.toString();
+
     if (collection.visibility !== "public" && !isOwner) {
-      return sendError(res, HTTP.FORBIDDEN, "You do not have access to this collection");
+      return sendError(
+        res,
+        HTTP.FORBIDDEN,
+        "You do not have access to this collection",
+      );
     }
 
     return sendSuccess(res, HTTP.OK, "Collection fetched successfully", {
       collection,
     });
   } catch (err) {
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to fetch collection", err);
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to fetch collection",
+      err,
+    );
   }
 });
 
-
-collectionRouter.patch("/:id", verifyFirebaseToken, async (req, res) => {
+collectionRouter.patch("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { data } = req.body;
-    const userId = req.user._id || req.user.uid;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP.BAD_REQUEST, "invalid collection ID");
+    }
+
+    if (!data) {
+      return sendError(res, HTTP.BAD_REQUEST, "missing data to update");
+    }
 
     const collection = await Collection.findById(id);
     if (!collection) {
@@ -111,25 +149,31 @@ collectionRouter.patch("/:id", verifyFirebaseToken, async (req, res) => {
     }
 
     if (collection.user.toString() !== userId.toString()) {
-      return sendError(res, HTTP.FORBIDDEN, "You do not have permission to update this collection");
+      return sendError(
+        res,
+        HTTP.FORBIDDEN,
+        "You do not have permission to update this collection",
+      );
     }
 
     // Update fields if provided
     if (data.title !== undefined) collection.title = data.title;
-    if (data.description !== undefined) collection.description = data.description;
+    if (data.description !== undefined)
+      collection.description = data.description;
     if (data.visibility !== undefined) collection.visibility = data.visibility;
-
 
     // Add a book
     if (data.addBook) {
-      if (!collection.books.some(b => b.volumeId === data.addBook)) {
+      if (!collection.books.some((b) => b.volumeId === data.addBook)) {
         collection.books.push({ volumeId: data.addBook });
       }
     }
 
     // Remove a book
     if (data.removeBook) {
-      collection.books = collection.books.filter(b => b.volumeId !== data.removeBook);
+      collection.books = collection.books.filter(
+        (b) => b.volumeId !== data.removeBook,
+      );
     }
 
     await collection.save();
@@ -139,15 +183,23 @@ collectionRouter.patch("/:id", verifyFirebaseToken, async (req, res) => {
       collection,
     });
   } catch (err) {
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to update collection", err);
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to update collection",
+      err,
+    );
   }
 });
 
-
-collectionRouter.delete("/:id", verifyFirebaseToken, async (req, res) => {
+collectionRouter.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user._id || req.user.uid;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP.BAD_REQUEST, "invalid collection ID");
+    }
 
     const collection = await Collection.findById(id);
     if (!collection) {
@@ -155,14 +207,23 @@ collectionRouter.delete("/:id", verifyFirebaseToken, async (req, res) => {
     }
 
     if (collection.user.toString() !== userId.toString()) {
-      return sendError(res, HTTP.FORBIDDEN, "You do not have permission to delete this collection");
+      return sendError(
+        res,
+        HTTP.FORBIDDEN,
+        "You do not have permission to delete this collection",
+      );
     }
 
     await collection.deleteOne();
 
     return sendSuccess(res, HTTP.OK, "Collection deleted successfully");
   } catch (err) {
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to delete collection", err);
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to delete collection",
+      err,
+    );
   }
 });
 

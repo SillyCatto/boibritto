@@ -1,5 +1,5 @@
 const express = require("express");
-const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
+const verifyFirebaseToken = require("../middlewares/verifyUser");
 const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
 
