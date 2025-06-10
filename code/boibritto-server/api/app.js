@@ -6,6 +6,7 @@ const verifyAdmin = require("./middlewares/verifyAdmin");
 
 const {
   jsonErrorHandler,
+  routeNotFoundHandler,
   globalErrorHandler,
 } = require("./middlewares/errorHandler");
 
@@ -41,6 +42,7 @@ app.use("/api/blogs", verifyUser, blogRouter);
 
 app.use("/api/boibritto-internals/admin", verifyAdmin, adminRouter);
 
+app.use(routeNotFoundHandler);
 app.use(globalErrorHandler);
 
 module.exports = app;

@@ -1,5 +1,5 @@
 const { sendError } = require("../utils/response");
-const { HTTP } = require("node:http");
+const HTTP = require("../utils/httpStatus");
 
 const jsonErrorHandler = (err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
@@ -12,10 +12,12 @@ const jsonErrorHandler = (err, req, res, next) => {
   next(err);
 };
 
-// const routeNotFoundHandler = (err, req, res, next) => {};
+const routeNotFoundHandler = (req, res, next) => {
+  return sendError(res, HTTP.NOT_FOUND, "The requested resource was not found");
+};
 
 const globalErrorHandler = (err, req, res, next) => {
-  console.error("Unhandled Error:", err);
+  console.error("unhandled error: ", err);
 
   return sendError(
     res,
@@ -26,5 +28,6 @@ const globalErrorHandler = (err, req, res, next) => {
 
 module.exports = {
   jsonErrorHandler,
+  routeNotFoundHandler,
   globalErrorHandler,
 };
