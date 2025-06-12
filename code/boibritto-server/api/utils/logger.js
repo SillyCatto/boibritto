@@ -20,8 +20,6 @@ const logInfo = (message, data = null) => {
   const prefix = chk.bgBlue.black.bold(" INFO ");
   const timestamp = chk.dim(getTimestamp());
 
-  console.log("\n");
-
   console.log(`${prefix} ${timestamp} ${chk.blue.bold(message)}`);
   if (data !== null) {
     console.log(chk.blue.underline("data:"), data);
@@ -33,8 +31,6 @@ const logWarning = (message, data = null) => {
   const prefix = chk.bgYellow.black.bold(" WARN ");
   const timestamp = chk.dim(getTimestamp());
 
-  console.log("\n");
-
   console.warn(`${prefix} ${timestamp} ${chk.yellow.bold(message)}`);
   if (data !== null) {
     console.warn(chk.yellow.underline("data:"), data);
@@ -45,8 +41,6 @@ const logWarning = (message, data = null) => {
 const logError = (message, error = null) => {
   const prefix = chk.bgRed.black.bold(" ERROR ");
   const timestamp = chk.dim(getTimestamp());
-
-  console.log("\n");
 
   console.error(`${prefix} ${timestamp} ${chk.red.bold(message)}`);
 
