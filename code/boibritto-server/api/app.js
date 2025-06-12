@@ -30,7 +30,7 @@ app.use(jsonErrorHandler);
 // import routers
 const testRouter = require("./routes/testRouter");
 const authRouter = require("./routes/authRouter");
-const collectionRouter = require("./routes/collectionRouter");
+const collectionRouter = require("./routes/collection.route");
 const adminRouter = require("./routes/adminRouter");
 const blogRouter = require("./routes/blogRouter");
 
