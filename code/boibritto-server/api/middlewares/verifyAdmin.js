@@ -1,48 +1,32 @@
-const admin = require("../config/firebase");
 const AdminModel = require("../models/admin.models");
 const { sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
+const { verifyFirebaseToken } = require("../services/firebase.service");
+const { logWarning, logError } = require("../utils/logger");
 
 const verifyAdmin = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return sendError(
-        res,
-        HTTP.UNAUTHORIZED,
-        "unauthorized: token missing or invalid",
-      );
-    }
-
-    const idToken = authHeader.split(" ")[1];
-
-    // verify firebase token
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const decodedToken = await verifyFirebaseToken(req.headers.authorization);
     const { uid, email, name } = decodedToken;
 
     if (!uid || !email || !name) {
-      console.error("invalid token payload");
+      logWarning("invalid token payload", decodedToken);
       return sendError(res, HTTP.UNAUTHORIZED, "unauthorized");
     }
 
     // check if admin exist in db
-    const adminInDb = await AdminModel.findOne({ uid, email, name });
+    const admin = await AdminModel.findOne({ uid, email, name });
 
-    if (!adminInDb) {
-      console.error("admin not registered");
+    if (!admin) {
+      logWarning("admin not registered");
       return sendError(res, HTTP.UNAUTHORIZED, "unauthorized");
     }
 
-    req.admin = adminInDb;
+    req.admin = admin;
     next();
-  } catch (error) {
-    return sendError(
-      res,
-      HTTP.UNAUTHORIZED,
-      "Unauthorized: invalid token or internal error",
-      error,
-    );
+  } catch (err) {
+    logError("error verifying Admin ID token:", err);
+    return sendError(res, HTTP.UNAUTHORIZED, "unauthorized");
   }
 };
 

@@ -3,9 +3,10 @@ const router = express.Router();
 const HTTP = require("../utils/httpStatus");
 const User = require("../models/user.models");
 const { sendSuccess, sendError } = require("../utils/response");
-const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
+const attachUser = require("../middlewares/attachUser");
+const { logError } = require("../utils/logger");
 
-router.get("/login", verifyFirebaseToken, async (req, res) => {
+router.get("/login", attachUser, async (req, res) => {
   try {
     const existingUser = await User.findOne({ uid: req.user.uid });
 
@@ -16,18 +17,14 @@ router.get("/login", verifyFirebaseToken, async (req, res) => {
 
     return sendSuccess(res, HTTP.OK, "User login successful", data);
   } catch (err) {
-    return sendError(
-      res,
-      HTTP.INTERNAL_SERVER_ERROR,
-      "Failed to login user",
-      err,
-    );
+    logError("User login failed", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to login user");
   }
 });
 
-router.post("/signup", verifyFirebaseToken, async (req, res) => {
+router.post("/signup", attachUser, async (req, res) => {
   try {
-    const { username, bio, interestedGenres = [] } = req.body;
+    const { username, bio, interestedGenres = [] } = req.body.data;
 
     const existingUser = await User.findOne({ uid: req.user.uid });
     if (existingUser) {
@@ -49,12 +46,8 @@ router.post("/signup", verifyFirebaseToken, async (req, res) => {
       user: newUser,
     });
   } catch (err) {
-    return sendError(
-      res,
-      HTTP.INTERNAL_SERVER_ERROR,
-      "Failed to sign up user",
-      err,
-    );
+    logError("User signup failed", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to sign up user");
   }
 });
 
