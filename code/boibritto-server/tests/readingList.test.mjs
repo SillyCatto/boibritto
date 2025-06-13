@@ -24,20 +24,19 @@ describe("Reading List API", () => {
     }
   });
 
-
   describe("POST /api/reading-list", () => {
     it("should add a book to the reading list", async () => {
       const res = await request(app)
-          .post("/api/reading-list")
-          .set("Authorization", `Bearer ${token}`)
-          .send({
-            data: {
-              volumeId: "test-google-book-id",
-              status: "reading",
-              startedAt: "2025-06-01T00:00:00.000Z",
-              visibility: "private",
-            },
-          });
+        .post("/api/reading-list")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          data: {
+            volumeId: "test-google-book-id",
+            status: "reading",
+            startedAt: "2025-06-01T00:00:00.000Z",
+            visibility: "private",
+          },
+        });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -46,7 +45,7 @@ describe("Reading List API", () => {
 
       // Find the created item
       const item = res.body.data.readingList.find(
-          (i) => i.volumeId === "test-google-book-id"
+        (i) => i.volumeId === "test-google-book-id",
       );
       expect(item).toBeDefined();
       expect(item.status).toBe("reading");
@@ -56,9 +55,9 @@ describe("Reading List API", () => {
 
     it("should return 400 if required fields are missing", async () => {
       const res = await request(app)
-          .post("/api/reading-list")
-          .set("Authorization", `Bearer ${token}`)
-          .send({ data: { status: "interested" } }); // missing volumeId
+        .post("/api/reading-list")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ data: { status: "interested" } }); // missing volumeId
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -104,6 +103,81 @@ describe("Reading List API", () => {
     });
   });
 
+  describe("POST /api/reading-list", () => {
+    it("should return 409 Conflict if book already exists in reading list", async () => {
+      // add a book first
+      const firstRes = await request(app)
+        .post("/api/reading-list")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          data: {
+            volumeId: "duplicate-book-id",
+            status: "interested",
+            visibility: "private",
+          },
+        });
+
+      expect(firstRes.status).toBe(200);
+
+      // try adding same book again
+      const secondRes = await request(app)
+        .post("/api/reading-list")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          data: {
+            volumeId: "duplicate-book-id",
+            status: "interested",
+          },
+        });
+
+      expect(secondRes.status).toBe(409);
+      expect(secondRes.body.success).toBe(false);
+
+      // Cleanup
+      const created = secondRes.body.data?.readingList?.find(
+        (i) => i.volumeId === "duplicate-book-id",
+      );
+      if (created) {
+        await request(app)
+          .delete(`/api/reading-list/${created._id}`)
+          .set("Authorization", `Bearer ${token}`);
+      }
+    });
+
+    it("should return 400 if 'reading' status is missing startedAt", async () => {
+      const res = await request(app)
+        .post("/api/reading-list")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          data: {
+            volumeId: "missing-startedAt",
+            status: "reading",
+          },
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/startedAt is required/);
+    });
+
+    it("should return 400 if status is 'completed' but missing completedAt", async () => {
+      const res = await request(app)
+        .post("/api/reading-list")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          data: {
+            volumeId: "test-invalid-completed-book",
+            status: "completed",
+            startedAt: "2025-06-01T00:00:00.000Z",
+          },
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  //---------
   describe("PATCH /api/reading-list/:id", () => {
     it("should update a reading list item", async () => {
       const res = await request(app)
@@ -124,7 +198,7 @@ describe("Reading List API", () => {
       expect(Array.isArray(res.body.data.readingList)).toBe(true);
 
       const updated = res.body.data.readingList.find(
-        (i) => i._id === createdItemId
+        (i) => i._id === createdItemId,
       );
       expect(updated.status).toBe("completed");
       expect(updated.visibility).toBe("friends");
