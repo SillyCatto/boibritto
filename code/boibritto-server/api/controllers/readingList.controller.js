@@ -4,14 +4,22 @@ const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
 const { logError } = require("../utils/logger");
 const { checkOwner } = require("../utils/checkOwner");
+const {
+  validateReadingListDates,
+} = require("../utils/validateReadingListDates");
 
 const getCurrentUserReadingList = async (req, res) => {
   try {
     const userId = req.user._id;
     const readingList = await ReadingList.find({ user: userId });
-    return sendSuccess(res, HTTP.OK, "Reading list fetched successfully", {
-      readingList,
-    });
+    return sendSuccess(
+      res,
+      HTTP.OK,
+      "Reading list for current user fetched successfully",
+      {
+        readingList,
+      },
+    );
   } catch (err) {
     logError("Failed to fetch reading list", err);
     return sendError(
@@ -73,20 +81,9 @@ const addToReadingList = async (req, res) => {
       );
     }
 
-    // validate status: startedAt and completedAt
-    if ((status === "reading" || status === "completed") && !startedAt) {
-      return sendError(
-        res,
-        HTTP.BAD_REQUEST,
-        "startedAt is required for status 'reading' or 'completed'",
-      );
-    }
-    if (status === "completed" && !completedAt) {
-      return sendError(
-        res,
-        HTTP.BAD_REQUEST,
-        "completedAt is required for status 'completed'",
-      );
+    const dateValidationError = validateReadingListDates(data);
+    if (dateValidationError) {
+      return sendError(res, HTTP.BAD_REQUEST, dateValidationError);
     }
 
     const newItem = new ReadingList({
@@ -145,22 +142,9 @@ const updateReadingListItem = async (req, res) => {
     if (data.completedAt !== undefined) item.completedAt = data.completedAt;
     if (data.visibility !== undefined) item.visibility = data.visibility;
 
-    if (
-      (item.status === "reading" || item.status === "completed") &&
-      !item.startedAt
-    ) {
-      return sendError(
-        res,
-        HTTP.BAD_REQUEST,
-        "startedAt is required for status 'reading' or 'completed'",
-      );
-    }
-    if (item.status === "completed" && !item.completedAt) {
-      return sendError(
-        res,
-        HTTP.BAD_REQUEST,
-        "completedAt is required for status 'completed'",
-      );
+    const dateValidationError = validateReadingListDates(data);
+    if (dateValidationError) {
+      return sendError(res, HTTP.BAD_REQUEST, dateValidationError);
     }
 
     await item.save();
