@@ -147,7 +147,28 @@ const updateReadingListItem = async (req, res) => {
     if (data.completedAt !== undefined) item.completedAt = data.completedAt;
     if (data.visibility !== undefined) item.visibility = data.visibility;
 
-    const dateValidationError = validateReadingListDates(data);
+    /**
+     * a few user action cases to handle:
+     * => directly add a book (POST) with 'completed' status
+     *      in this case frontend must provide both start and end date
+     *
+     * => update  status from 'reading' to 'completed'
+     *      in this case fetch start date from previous reading status, before updating, we had the status as reading and also had the start date, so get the start date from there, and frontend has to provide only the end date
+     *
+     * => update status from 'interested' to 'completed'
+     *      here also frontend must provide both start and end date
+     *
+     *
+     * the following code handles this by merging and overriding existing data from db and new data frontend
+     * (needs more testing)
+     *
+     * */
+    const mergedData = {
+      ...item.toObject(), // existing item values
+      ...data, // override with new values
+    };
+
+    const dateValidationError = validateReadingListDates(mergedData);
     if (dateValidationError) {
       return sendError(res, HTTP.BAD_REQUEST, dateValidationError);
     }
