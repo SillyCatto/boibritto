@@ -1,14 +1,11 @@
-const express = require("express");
 const Blog = require("../models/blog.models");
 const mongoose = require("mongoose");
+const { logError } = require("../utils/logger");
 const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
 const { GENRES } = require("../utils/constants");
 
-
-const blogRouter = express.Router();
-
-blogRouter.get("/", async (req, res) => {
+const getBlogsList = async (req, res) => {
   try {
     const { author, page = 1 } = req.query;
     const PAGE_SIZE = 20;
@@ -28,7 +25,10 @@ blogRouter.get("/", async (req, res) => {
       filter.visibility = "public";
     }
 
-    let query = Blog.find(filter).populate("user", "displayName username avatar");
+    let query = Blog.find(filter).populate(
+      "user",
+      "displayName username avatar",
+    );
 
     if (isPaginated) {
       query = query.skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE);
@@ -38,19 +38,58 @@ blogRouter.get("/", async (req, res) => {
 
     return sendSuccess(res, HTTP.OK, "Blogs fetched successfully", { blogs });
   } catch (err) {
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to fetch blogs", err);
+    logError("Failed to fetch blogs", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to fetch blogs");
   }
-});
+};
 
+const getOneBlogByID = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?._id;
 
-blogRouter.post("/", async (req, res) => {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP.BAD_REQUEST, "Invalid blog ID");
+    }
+
+    const blog = await Blog.findById(id).populate(
+      "user",
+      "displayName username avatar",
+    );
+    if (!blog) {
+      return sendError(res, HTTP.NOT_FOUND, "Blog not found");
+    }
+
+    const isOwner = blog.user._id?.toString() === userId?.toString();
+    if (blog.visibility !== "public" && !isOwner) {
+      return sendError(
+        res,
+        HTTP.FORBIDDEN,
+        "You do not have access to this blog",
+      );
+    }
+
+    return sendSuccess(res, HTTP.OK, "Blog fetched successfully", { blog });
+  } catch (err) {
+    logError("Failed to fetch blog", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to fetch blog");
+  }
+};
+
+const createBlog = async (req, res) => {
   try {
     const { data } = req.body;
     if (!data) {
       return sendError(res, HTTP.BAD_REQUEST, "Missing blog data");
     }
 
-    const { title, content, visibility = "public", spoilerAlert, genres = [] } = data;
+    const {
+      title,
+      content,
+      visibility = "public",
+      spoilerAlert,
+      genres = [],
+    } = data;
 
     if (!title || !content || typeof spoilerAlert !== "boolean") {
       return sendError(res, HTTP.BAD_REQUEST, "Missing required fields");
@@ -70,40 +109,16 @@ blogRouter.post("/", async (req, res) => {
     await newBlog.save();
     await newBlog.populate("user", "displayName username avatar");
 
-    return sendSuccess(res, HTTP.CREATED, "Blog created successfully", { blog: newBlog });
+    return sendSuccess(res, HTTP.CREATED, "Blog created successfully", {
+      blog: newBlog,
+    });
   } catch (err) {
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to create blog", err);
+    logError("Failed to create blog", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to create blog");
   }
-});
+};
 
-
-blogRouter.get("/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user?._id;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return sendError(res, HTTP.BAD_REQUEST, "Invalid blog ID");
-    }
-
-    const blog = await Blog.findById(id).populate("user", "displayName username avatar");
-    if (!blog) {
-      return sendError(res, HTTP.NOT_FOUND, "Blog not found");
-    }
-
-    const isOwner = blog.user._id?.toString() === userId?.toString();
-    if (blog.visibility !== "public" && !isOwner) {
-      return sendError(res, HTTP.FORBIDDEN, "You do not have access to this blog");
-    }
-
-    return sendSuccess(res, HTTP.OK, "Blog fetched successfully", { blog });
-  } catch (err) {
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to fetch blog", err);
-  }
-});
-
-
-blogRouter.patch("/:id", async (req, res) => {
+const updateBlog = async (req, res) => {
   try {
     const { id } = req.params;
     const { data } = req.body;
@@ -123,7 +138,11 @@ blogRouter.patch("/:id", async (req, res) => {
     }
 
     if (blog.user.toString() !== userId.toString()) {
-      return sendError(res, HTTP.FORBIDDEN, "You do not have permission to update this blog");
+      return sendError(
+        res,
+        HTTP.FORBIDDEN,
+        "You do not have permission to update this blog",
+      );
     }
 
     // Update given fields
@@ -138,12 +157,12 @@ blogRouter.patch("/:id", async (req, res) => {
 
     return sendSuccess(res, HTTP.OK, "Blog updated successfully", { blog });
   } catch (err) {
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to update blog", err);
+    logError("Failed to update blog", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to update blog");
   }
-});
+};
 
-
-blogRouter.delete("/:id", async (req, res) => {
+const deleteBlog = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
@@ -158,16 +177,26 @@ blogRouter.delete("/:id", async (req, res) => {
     }
 
     if (blog.user.toString() !== userId.toString()) {
-      return sendError(res, HTTP.FORBIDDEN, "You do not have permission to delete this blog");
+      return sendError(
+        res,
+        HTTP.FORBIDDEN,
+        "You do not have permission to delete this blog",
+      );
     }
 
     await blog.deleteOne();
 
     return sendSuccess(res, HTTP.OK, "Blog deleted successfully");
   } catch (err) {
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to delete blog", err);
+    logError("Failed to delete blog", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to delete blog");
   }
-});
+};
 
-
-module.exports = blogRouter;
+module.exports.BlogController = {
+  getBlogsList,
+  getOneBlogByID,
+  createBlog,
+  updateBlog,
+  deleteBlog,
+};
