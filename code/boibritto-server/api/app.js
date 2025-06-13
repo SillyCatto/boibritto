@@ -43,7 +43,7 @@ app.use("/api/test", testRouter);
 app.use("/api/auth", attachUser, authRouter);
 app.use("/api/collections", verifyUser, collectionRouter);
 app.use("/api/blogs", verifyUser, blogRouter);
-app.use("/api/reading-list", readingListRouter);
+app.use("/api/reading-list", verifyUser, readingListRouter);
 
 app.use("/api/boibritto-internals/admin", verifyAdmin, adminRouter);
 
