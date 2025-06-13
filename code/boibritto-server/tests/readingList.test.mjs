@@ -24,46 +24,6 @@ describe("Reading List API", () => {
     }
   });
 
-  describe("POST /api/reading-list", () => {
-    it("should add a book to the reading list", async () => {
-      const res = await request(app)
-        .post("/api/reading-list")
-        .set("Authorization", `Bearer ${token}`)
-        .send({
-          data: {
-            volumeId: "test-google-book-id",
-            status: "reading",
-            startedAt: "2025-06-01T00:00:00.000Z",
-            visibility: "private",
-          },
-        });
-
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.message).toBe("Reading list updated successfully");
-      expect(Array.isArray(res.body.data.readingList)).toBe(true);
-
-      // Find the created item
-      const item = res.body.data.readingList.find(
-        (i) => i.volumeId === "test-google-book-id",
-      );
-      expect(item).toBeDefined();
-      expect(item.status).toBe("reading");
-      expect(item.visibility).toBe("private");
-      createdItemId = item._id;
-    });
-
-    it("should return 400 if required fields are missing", async () => {
-      const res = await request(app)
-        .post("/api/reading-list")
-        .set("Authorization", `Bearer ${token}`)
-        .send({ data: { status: "interested" } }); // missing volumeId
-
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
-    });
-  });
-
   describe("GET /api/reading-list/me", () => {
     it("should fetch the authenticated user's reading list", async () => {
       const res = await request(app)
@@ -72,7 +32,9 @@ describe("Reading List API", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.message).toBe("Reading list fetched successfully");
+      expect(res.body.message).toBe(
+        "Reading list for current user fetched successfully",
+      );
       expect(Array.isArray(res.body.data.readingList)).toBe(true);
     });
 
@@ -104,6 +66,46 @@ describe("Reading List API", () => {
   });
 
   describe("POST /api/reading-list", () => {
+    it("should add a book to the reading list", async () => {
+      const res = await request(app)
+        .post("/api/reading-list")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          data: {
+            volumeId: "test-google-book-id",
+            status: "reading",
+            startedAt: "2025-06-01T00:00:00.000Z",
+            visibility: "private",
+          },
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe(
+        "Book added to reading list updated successfully",
+      );
+      expect(Array.isArray(res.body.data.readingList)).toBe(true);
+
+      // Find the created item
+      const item = res.body.data.readingList.find(
+        (i) => i.volumeId === "test-google-book-id",
+      );
+      expect(item).toBeDefined();
+      expect(item.status).toBe("reading");
+      expect(item.visibility).toBe("private");
+      createdItemId = item._id;
+    });
+
+    it("should return 400 if required fields are missing", async () => {
+      const res = await request(app)
+        .post("/api/reading-list")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ data: { status: "interested" } }); // missing volumeId
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
     it("should return 409 Conflict if book already exists in reading list", async () => {
       // add a book first
       const firstRes = await request(app)
@@ -134,7 +136,7 @@ describe("Reading List API", () => {
       expect(secondRes.body.success).toBe(false);
 
       // Cleanup
-      const created = secondRes.body.data?.readingList?.find(
+      const created = firstRes.body.data?.readingList?.find(
         (i) => i.volumeId === "duplicate-book-id",
       );
       if (created) {
@@ -175,6 +177,26 @@ describe("Reading List API", () => {
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
+
+    it("should return 400 if completedAt is before startedAt", async () => {
+      const res = await request(app)
+        .post("/api/reading-list")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          data: {
+            volumeId: "invalid-date-sequence-book",
+            status: "completed",
+            startedAt: "2025-06-05T00:00:00.000Z",
+            completedAt: "2025-06-01T00:00:00.000Z", // before startedAt
+          },
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(
+        /completedAt.+cannot be before.+startedAt/i,
+      );
+    });
   });
 
   //---------
@@ -212,6 +234,47 @@ describe("Reading List API", () => {
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
+    });
+
+    it("should return 400 if completedAt is before startedAt during update", async () => {
+      // First, create a valid entry
+      const createRes = await request(app)
+        .post("/api/reading-list")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          data: {
+            volumeId: "update-bad-date-book",
+            status: "reading",
+            startedAt: "2025-06-10T00:00:00.000Z",
+          },
+        });
+
+      const itemId = createRes.body.data.readingList.find(
+        (i) => i.volumeId === "update-bad-date-book",
+      )._id;
+
+      // Try to update with invalid dates
+      const res = await request(app)
+        .patch(`/api/reading-list/${itemId}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          data: {
+            status: "completed",
+            startedAt: "2025-06-10T00:00:00.000Z",
+            completedAt: "2025-06-01T00:00:00.000Z",
+          },
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(
+        /completedAt.+cannot be before.+startedAt/i,
+      );
+
+      // Cleanup
+      await request(app)
+        .delete(`/api/reading-list/${itemId}`)
+        .set("Authorization", `Bearer ${token}`);
     });
   });
 

@@ -100,9 +100,14 @@ const addToReadingList = async (req, res) => {
     // return updated list
     const updatedList = await ReadingList.find({ user: userId });
 
-    return sendSuccess(res, HTTP.OK, "Reading list updated successfully", {
-      readingList: updatedList,
-    });
+    return sendSuccess(
+      res,
+      HTTP.OK,
+      "Book added to reading list updated successfully",
+      {
+        readingList: updatedList,
+      },
+    );
   } catch (err) {
     logError("Failed to add to reading list", err);
     return sendError(
