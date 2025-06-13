@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const readingListSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    volumeId: { type: String, required: true }, // Google Books ID
+    volumeId: { type: String, required: true, maxLength: 100 }, // Google Books ID
     status: {
       type: String,
       enum: ["interested", "reading", "completed"],
