@@ -11,4 +11,6 @@ readingListRoute.post("/", ReadingListController.addToReadingList);
 
 readingListRoute.patch("/:id", ReadingListController.updateReadingListItem);
 
+readingListRoute.delete("/:id", ReadingListController.deleteReadingListItem);
+
 module.exports = readingListRoute;
