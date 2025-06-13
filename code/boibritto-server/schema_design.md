@@ -264,6 +264,26 @@ const commentSchema = new mongoose.Schema(
 module.exports = mongoose.model("Comment", commentSchema);
 ```
 
+Might actually use Firebase firestore for real time comments.
+
+**Firestore comment document:**
+```json
+{
+  "id": "abc123",                      // Firestore document ID
+  "discussionId": "6660ad...",        // Mongo Discussion _id (as string)
+  "userId": "665f2e...",              // Mongo User _id (as string)
+  "userDisplayName": "John Doe",     // From decoded Firebase token
+  "userAvatar": "https://...jpg",    // From decoded Firebase token
+
+  "content": "This is a comment",     // Up to 1000 characters
+  "parentId": null,                   // null if top-level, else commentId
+  "createdAt": "2025-06-13T12:00:00Z",
+  "edited": false,
+  "likes": 0
+}
+
+```
+
 ---
 
 ### 🧑‍🤝‍🧑 `Connection` Schema
