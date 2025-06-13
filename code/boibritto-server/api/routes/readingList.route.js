@@ -9,4 +9,6 @@ readingListRoute.get("/:userID", ReadingListController.getReadingListByID);
 
 readingListRoute.post("/", ReadingListController.addToReadingList);
 
+readingListRoute.patch("/:id", ReadingListController.updateReadingListItem);
+
 module.exports = readingListRoute;
