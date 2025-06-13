@@ -5,4 +5,8 @@ const readingListRoute = express.Router();
 
 readingListRoute.get("/me", ReadingListController.getReadingList);
 
+readingListRoute.get("/:userID", ReadingListController.getReadingListByID);
+
+readingListRoute.post("/", ReadingListController.addToReadingList);
+
 module.exports = readingListRoute;
