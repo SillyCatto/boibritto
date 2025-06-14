@@ -1,33 +1,37 @@
 const express = require("express");
 const router = express.Router();
+const HTTP = require("../utils/httpStatus");
 const User = require("../models/user.models");
 const { sendSuccess, sendError } = require("../utils/response");
 const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
 
-
 router.get("/login", verifyFirebaseToken, async (req, res) => {
   try {
-    const isExisting = await User.findOne({ uid: req.user.uid });
+    const existingUser = await User.findOne({ uid: req.user.uid });
 
     const data = {
-      newUser: !isExisting,
-      user: isExisting || null,
-    }
+      newUser: !existingUser,
+      user: existingUser || null,
+    };
 
-    return sendSuccess(res, 200, "User login successful", data);
+    return sendSuccess(res, HTTP.OK, "User login successful", data);
   } catch (err) {
-    return sendError(res, 500, "Failed to login user", err);
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to login user",
+      err,
+    );
   }
 });
-
 
 router.post("/signup", verifyFirebaseToken, async (req, res) => {
   try {
     const { username, bio, interestedGenres = [] } = req.body;
 
-    const isExisting = await User.findOne({ uid: req.user.uid });
-    if (isExisting) {
-      return sendError(res, 400, "User already exists");
+    const existingUser = await User.findOne({ uid: req.user.uid });
+    if (existingUser) {
+      return sendError(res, HTTP.BAD_REQUEST, "User already exists");
     }
 
     const newUser = new User({
@@ -41,9 +45,16 @@ router.post("/signup", verifyFirebaseToken, async (req, res) => {
     });
 
     await newUser.save();
-    return sendSuccess(res, 201, "User account created successfully", { user: newUser });
+    return sendSuccess(res, HTTP.CREATED, "User account created successfully", {
+      user: newUser,
+    });
   } catch (err) {
-    return sendError(res, 500, "Failed to sign up user", err);
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to sign up user",
+      err,
+    );
   }
 });
 
