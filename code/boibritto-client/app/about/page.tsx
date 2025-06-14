@@ -1,3 +1,10 @@
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About | BoiBritto",
+  description: "Learn about BoiBritto – your ultimate platform for discovering, reviewing, and discussing books.",
+};
+
 export default function AboutPage() {
   return (
     <main className="bg-gray-900 text-gray-300 min-h-screen py-16 px-6 sm:px-10">
