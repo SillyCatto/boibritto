@@ -2,23 +2,24 @@
 function validateReadingListDates(data) {
   const { status, startedAt, completedAt } = data;
 
-  if ((status === "reading" || status === "completed") && !startedAt) {
-    return "startedAt is required for status 'reading' or 'completed'";
+  if (status === "reading") {
+    if (!startedAt)
+      return "startedAt date is required when status is 'reading'";
+    if (completedAt)
+      return "completedAt should not be provided when status is 'reading'";
   }
 
-  if (status === "completed" && !completedAt) {
-    return "completedAt is required for status 'completed'";
-  }
+  if (status === "completed") {
+    if (!startedAt || !completedAt) {
+      return "Both startedAt and completedAt are required when status is 'completed'";
+    }
 
-  if (startedAt && completedAt) {
-    const start = new Date(startedAt);
-    const complete = new Date(completedAt);
-    if (complete < start) {
-      return "completedAt cannot be before startedAt";
+    if (new Date(completedAt) < new Date(startedAt)) {
+      return "completedAt cannot be earlier than startedAt";
     }
   }
 
-  return null; // No error
+  return null; // valid
 }
 
-module.exports = { validateReadingListDates };
+module.exports = validateReadingListDates;

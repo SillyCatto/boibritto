@@ -103,7 +103,7 @@ const addToReadingList = async (req, res) => {
     return sendSuccess(
       res,
       HTTP.OK,
-      "Book added to reading list updated successfully",
+      "Book added to reading list successfully",
       {
         readingList: updatedList,
       },
