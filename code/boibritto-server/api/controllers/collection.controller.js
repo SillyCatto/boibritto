@@ -214,7 +214,13 @@ const deleteCollection = async (req, res) => {
 
     await collection.deleteOne();
 
-    return sendSuccess(res, HTTP.OK, "Collection deleted successfully");
+    const updatedCollections = await Collection.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate("user", "displayName username avatar");
+
+    return sendSuccess(res, HTTP.OK, "Collection deleted successfully", {
+      collections: updatedCollections,
+    });
   } catch (err) {
     logError("Failed to delete collection", err);
     return sendError(
