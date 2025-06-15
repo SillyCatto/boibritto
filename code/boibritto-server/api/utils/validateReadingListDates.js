@@ -2,6 +2,11 @@
 function validateReadingListDates(data) {
   const { status, startedAt, completedAt } = data;
 
+  if (status === "interested") {
+    if (startedAt || completedAt)
+      return "startedAt and completedAt dates should not be provided if status is 'interested'";
+  }
+
   if (status === "reading") {
     if (!startedAt)
       return "startedAt date is required when status is 'reading'";

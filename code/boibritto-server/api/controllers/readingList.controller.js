@@ -4,9 +4,7 @@ const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
 const { logError } = require("../utils/logger");
 const { checkOwner } = require("../utils/checkOwner");
-const {
-  validateReadingListDates,
-} = require("../utils/validateReadingListDates");
+const validateReadingListDates = require("../utils/validateReadingListDates");
 
 const getCurrentUserReadingList = async (req, res) => {
   try {
