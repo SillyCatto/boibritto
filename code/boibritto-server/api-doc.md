@@ -32,6 +32,7 @@ Ex-
 ## API Routes:
 
 - #### [Auth](#auth-routes)
+- #### [Profile](#profile-routes)
 - #### [Collections](#collections-routes)
 - #### [Reading List](#reading-list-routes)
 - #### [Blogs](#blog-routes)
@@ -163,6 +164,106 @@ Content-Type: application/json
   "error": null
 }
 ```
+---
+
+## Profile Routes
+
+### Get Current User's Profile
+
+**GET** `/api/profile/me`
+
+**Behavior:**
+
+* Returns minimal preview data related to the currently authenticated user, including:
+  * User profile data
+  * Up to 5 most recent collections
+  * Up to 5 most recent reading tracker items
+  * Up to 5 most recent blogs
+
+**Headers:**
+
+```
+Authorization: Bearer <FIREBASE_ID_TOKEN>
+```
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Profile data fetched successfully",
+  "data": {
+    "profile_data": { /* User profile data */ },
+    "collections": [ /* Array of collections */ ],
+    "reading_tracker": [ /* Array of reading list items */ ],
+    "blogs": [ /* Array of blogs */ ]
+  }
+}
+```
+<br>
+
+Sample response:
+```json
+{
+  "success": true,
+  "message": "Profile data fetched successfully",
+  "data": {
+    "profile_data": {
+      "_id": "6843292c5cc2e9ee0b9bc0a9",
+      "email": "test@example.com",
+      "username": "test",
+      "displayName": "TestUser",
+      "bio": "Im a test user",
+      "avatar": "Dummy avatar",
+      "interestedGenres": ["fiction"],
+      "createdAt": "2025-06-06T17:45:16.747Z",
+      "updatedAt": "2025-06-06T17:45:16.747Z"
+    },
+    "collections": [
+      {
+        "_id": "68445fbc6a03d373c39b9031",
+        "title": "Test Collection",
+        "description": "This is a test collection",
+        "visibility": "public",
+        "createdAt": "2025-06-07T15:50:20.549Z",
+        "updatedAt": "2025-06-11T18:55:06.626Z"
+      }
+    ],
+    "reading_tracker": [
+      {
+        "_id": "68544cd26b3874a436296d28",
+        "volumeId": "book-id-1",
+        "status": "completed",
+        "visibility": "public",
+        "createdAt": "2025-06-19T17:45:54.156Z",
+        "updatedAt": "2025-06-19T17:45:54.156Z"
+      }
+    ],
+    "blogs": [
+      {
+        "_id": "6847133861841477d982ac22",
+        "title": "My Second Blog!",
+        "visibility": "public",
+        "spoilerAlert": false,
+        "genres": [],
+        "createdAt": "2025-06-09T17:00:40.091Z",
+        "updatedAt": "2025-06-09T17:21:56.138Z"
+      },
+      {
+        "_id": "6847144261841477d982ac2f",
+        "title": "My First Blog!",
+        "visibility": "public",
+        "spoilerAlert": false,
+        "genres": [],
+        "createdAt": "2025-06-09T17:05:06.094Z",
+        "updatedAt": "2025-06-09T17:05:06.094Z"
+      }
+    ]
+  }
+}
+```
+
+
 ---
 
 ## Collection Routes
@@ -313,7 +414,6 @@ Sample response:
   "data": {
     "collection": { /* Collection details */ }
   }
-}
 ```
 
 <br>
@@ -566,11 +666,11 @@ Sample response
 
 **Date Validation Rules:**
 
-| status       | startedAt | completedAt | Rule                                                                 |
-|--------------|-----------|-------------|----------------------------------------------------------------------|
-| interested   | ❌        | ❌          | No dates needed                                                     |
-| reading      | ✅        | ❌          | `startedAt` required, `completedAt` **must not be present**         |
-| completed    | ✅        | ✅          | Both dates required. `completedAt` must not be earlier than `startedAt` |
+| status     | startedAt | completedAt | Rule                                                                    |
+| ---------- | --------- | ----------- | ----------------------------------------------------------------------- |
+| interested | ❌         | ❌           | No dates needed                                                         |
+| reading    | ✅         | ❌           | `startedAt` required, `completedAt` **must not be present**             |
+| completed  | ✅         | ✅           | Both dates required. `completedAt` must not be earlier than `startedAt` |
 
 **Response Format:**
 
@@ -657,11 +757,11 @@ Sample Response:
 
 **Date Validation Rules:**
 
-| status       | startedAt | completedAt | Rule                                                                 |
-|--------------|-----------|-------------|----------------------------------------------------------------------|
-| interested   | ❌        | ❌          | No dates needed                                                     |
-| reading      | ✅        | ❌          | `startedAt` required, `completedAt` **must not be present**         |
-| completed    | ✅        | ✅          | Both dates required. `completedAt` must not be earlier than `startedAt` |
+| status     | startedAt | completedAt | Rule                                                                    |
+| ---------- | --------- | ----------- | ----------------------------------------------------------------------- |
+| interested | ❌         | ❌           | No dates needed                                                         |
+| reading    | ✅         | ❌           | `startedAt` required, `completedAt` **must not be present**             |
+| completed  | ✅         | ✅           | Both dates required. `completedAt` must not be earlier than `startedAt` |
 
 **Response Format:**
 
@@ -754,7 +854,6 @@ Sample response:
   "data": {
     "readingList": [ /* Full updated reading list of the user */ ]
   }
-}
 ```
 
 <br>
@@ -1101,3 +1200,5 @@ Sample response:
     "data": {}
 }
 ```
+
+---
