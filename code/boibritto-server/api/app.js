@@ -17,12 +17,12 @@ const app = express();
 app.use(
   cors({
     origin: [
-      process.env.FRONTEND_URL,
+      //process.env.FRONTEND_URL,
       "http://localhost:3000",
       "http://localhost:8000",
     ],
     credentials: true,
-  }),
+  })
 );
 app.use(express.json());
 
@@ -37,6 +37,7 @@ const authRouter = require("./routes/auth.route");
 const collectionRouter = require("./routes/collection.route");
 const blogRouter = require("./routes/blog.route");
 const readingListRouter = require("./routes/readingList.route");
+const profileRouter = require("./routes/profile.route");
 
 // use routes
 app.use("/api/test", testRouter);
@@ -44,6 +45,7 @@ app.use("/api/auth", attachUser, authRouter);
 app.use("/api/collections", verifyUser, collectionRouter);
 app.use("/api/blogs", verifyUser, blogRouter);
 app.use("/api/reading-list", verifyUser, readingListRouter);
+app.use("/api/profile", verifyUser, profileRouter);
 
 app.use("/api/boibritto-internals/admin", verifyAdmin, adminRouter);
 
