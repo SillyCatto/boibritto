@@ -17,7 +17,7 @@ export default function Navbar() {
           <Link href="/" className="text-gray-900 font-medium">Home</Link>
           <Link href="/explore" className="text-gray-600 hover:text-amber-700">Explore</Link>
           <Link href="/collections" className="text-gray-600 hover:text-amber-700">Collections</Link>
-          <Link href="/about" className="text-gray-600 hover:text-amber-700">About</Link>
+          <Link href="/discussions" className="text-gray-600 hover:text-amber-700">Discussions</Link>
         </div>
         
         <div className="hidden md:block">
@@ -44,7 +44,7 @@ export default function Navbar() {
             <Link href="/" className="text-gray-900 font-medium py-2">Home</Link>
             <Link href="/explore" className="text-gray-600 hover:text-amber-700 py-2">Explore</Link>
             <Link href="/collections" className="text-gray-600 hover:text-amber-700 py-2">Collections</Link>
-            <Link href="/about" className="text-gray-600 hover:text-amber-700 py-2">About</Link>
+            <Link href="/discussions" className="text-gray-600 hover:text-amber-700 py-2">Discussions</Link>
             <Link href="/signin" className="text-amber-700 hover:text-amber-800 font-medium py-2">
               Sign In
             </Link>
