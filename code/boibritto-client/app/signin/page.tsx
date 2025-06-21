@@ -24,6 +24,7 @@ export default function SignInPage() {
         }
       );
       const data = res.data;
+      console.log("Sign in response:", data);
       if (data.success) {
         if (data.data.newUser) {
           router.push("/signup");
