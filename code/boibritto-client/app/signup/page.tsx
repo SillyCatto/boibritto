@@ -91,7 +91,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white flex flex-col justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white py-14 flex flex-col justify-center">
       <div className="max-w-xl w-full mx-auto px-8 py-14 bg-white rounded-2xl shadow-lg relative overflow-hidden">
         {/* Background decorative elements */}
         <div className="absolute -top-16 -right-16 w-32 h-32 bg-amber-100 rounded-full opacity-70"></div>
@@ -101,14 +101,7 @@ export default function SignUpPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <div className="h-16 w-16 relative">
-                <Image 
-                  src="/images/book-illustration.svg" 
-                  alt="BoiBritto" 
-                  width={64} 
-                  height={64} 
-                  className="object-contain"
-                />
+              <div className="h-1 w-16 relative">
               </div>
             </div>
             <h1 className="font-serif text-3xl font-bold text-amber-700 mb-2">Complete Your Profile</h1>
