@@ -34,8 +34,8 @@ export default function Navbar() {
                 onClick={() => setMenuOpen((v) => !v)}
               >
                 <Image
-                  src={user.photoURL || "/images/default-avatar.png"}
-                  alt={user.displayName || "User"}
+                  src={user.photoURL }
+                  alt={user.displayName}
                   width={36}
                   height={36}
                   className="rounded-full border border-amber-200"
