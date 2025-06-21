@@ -1,12 +1,10 @@
-const express = require("express");
 const Collection = require("../models/collection.models");
 const mongoose = require("mongoose");
 const { sendSuccess, sendError } = require("../utils/response");
 const HTTP = require("../utils/httpStatus");
+const { logError } = require("../utils/logger");
 
-const collectionRouter = express.Router();
-
-collectionRouter.get("/", async (req, res) => {
+const getCollectionsList = async (req, res) => {
   try {
     const { owner, page = 1 } = req.query;
     const PAGE_SIZE = 20;
@@ -41,55 +39,16 @@ collectionRouter.get("/", async (req, res) => {
       collections,
     });
   } catch (err) {
+    logError("Failed to fetch collections", err);
     return sendError(
       res,
       HTTP.INTERNAL_SERVER_ERROR,
       "Failed to fetch collections",
-      err,
     );
   }
-});
+};
 
-collectionRouter.post("/", async (req, res) => {
-  try {
-    const { data } = req.body;
-
-    if (!data) {
-      return sendError(res, HTTP.BAD_REQUEST, "missing data to update");
-    }
-
-    if (!data.title) {
-      return sendError(res, HTTP.BAD_REQUEST, "collection title is required");
-    }
-
-    const newCollection = new Collection({
-      user: req.user._id,
-      title: data.title,
-      description: data.description || "",
-      books: Array.isArray(data.books) ? data.books : [],
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      visibility: data.visibility || "public",
-    });
-
-    await newCollection.save();
-
-    // Populate user fields for response consistency
-    await newCollection.populate("user", "displayName username avatar");
-
-    return sendSuccess(res, HTTP.CREATED, "Collection created successfully", {
-      collection: newCollection,
-    });
-  } catch (err) {
-    return sendError(
-      res,
-      HTTP.INTERNAL_SERVER_ERROR,
-      "Failed to create collection",
-      err,
-    );
-  }
-});
-
-collectionRouter.get("/:id", async (req, res) => {
+const getOneCollectionByID = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
@@ -120,16 +79,55 @@ collectionRouter.get("/:id", async (req, res) => {
       collection,
     });
   } catch (err) {
+    logError("Failed to fetch collection", err);
     return sendError(
       res,
       HTTP.INTERNAL_SERVER_ERROR,
       "Failed to fetch collection",
-      err,
     );
   }
-});
+};
 
-collectionRouter.patch("/:id", async (req, res) => {
+const createCollection = async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data) {
+      return sendError(res, HTTP.BAD_REQUEST, "missing data to update");
+    }
+
+    if (!data.title) {
+      return sendError(res, HTTP.BAD_REQUEST, "collection title is required");
+    }
+
+    const newCollection = new Collection({
+      user: req.user._id,
+      title: data.title,
+      description: data.description || "",
+      books: Array.isArray(data.books) ? data.books : [],
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      visibility: data.visibility || "public",
+    });
+
+    await newCollection.save();
+
+    // Populate user fields for response consistency
+    await newCollection.populate("user", "displayName username avatar");
+
+    return sendSuccess(res, HTTP.CREATED, "Collection created successfully", {
+      collection: newCollection,
+    });
+  } catch (err) {
+    logError("Failed to create collection", err);
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to create collection",
+    );
+  }
+};
+
+const updateCollection = async (req, res) => {
   try {
     const { id } = req.params;
     const { data } = req.body;
@@ -183,16 +181,16 @@ collectionRouter.patch("/:id", async (req, res) => {
       collection,
     });
   } catch (err) {
+    logError("Failed to update collection", err);
     return sendError(
       res,
       HTTP.INTERNAL_SERVER_ERROR,
       "Failed to update collection",
-      err,
     );
   }
-});
+};
 
-collectionRouter.delete("/:id", async (req, res) => {
+const deleteCollection = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
@@ -216,15 +214,27 @@ collectionRouter.delete("/:id", async (req, res) => {
 
     await collection.deleteOne();
 
-    return sendSuccess(res, HTTP.OK, "Collection deleted successfully");
+    const updatedCollections = await Collection.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate("user", "displayName username avatar");
+
+    return sendSuccess(res, HTTP.OK, "Collection deleted successfully", {
+      collections: updatedCollections,
+    });
   } catch (err) {
+    logError("Failed to delete collection", err);
     return sendError(
       res,
       HTTP.INTERNAL_SERVER_ERROR,
       "Failed to delete collection",
-      err,
     );
   }
-});
+};
 
-module.exports = collectionRouter;
+module.exports.CollectionController = {
+  getCollectionsList,
+  getOneCollectionByID,
+  createCollection,
+  updateCollection,
+  deleteCollection,
+};
