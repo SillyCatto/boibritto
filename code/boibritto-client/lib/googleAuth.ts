@@ -10,10 +10,14 @@ const firebaseConfig = {
   appId: "1:284940441348:web:0b904bca389f897b7b6251"
 };
 
-if (!getApps().length) {
-  initializeApp(firebaseConfig);
+// if (!getApps().length) {
+//   initializeApp(firebaseConfig);
+// }
+export function initFirebase() {
+  if (!getApps().length) {
+    initializeApp(firebaseConfig);
+  }
 }
-
 export async function googleSignInPopup() {
   const auth = getAuth();
   const provider = new GoogleAuthProvider();

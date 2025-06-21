@@ -4,6 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 
+import { initFirebase } from "@/lib/googleAuth";
+
+initFirebase(); // Initialize Firebase only once
+
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [menuOpen, setMenuOpen] = useState(false);
