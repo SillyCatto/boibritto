@@ -5,6 +5,7 @@ import Link from "next/link";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { googleSignInPopup } from "@/lib/googleAuth";
+import { FaGoogle } from "react-icons/fa";
 
 export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -75,7 +76,7 @@ export default function SignInPage() {
             disabled={isLoading}
             className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-lg py-4 px-4 text-gray-800 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors mb-6 relative shadow-sm"
           >
-            <Image src="/images/google-logo.svg" alt="Google" width={20} height={20} />
+            <FaGoogle className="text-amber-700" size={20} />
             <span className="font-medium">{isLoading ? "Signing in..." : "Sign in with Google"}</span>
             {isLoading && (
               <span className="absolute right-4 top-1/2 -translate-y-1/2">
@@ -120,19 +121,10 @@ export default function SignInPage() {
             </div>
           </div>
           
-          {/* Terms and privacy */}
-          <div className="mt-8 text-center text-xs text-gray-500">
-            By signing in, you agree to our{" "}
-            <Link href="/terms" className="text-amber-700 hover:underline">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="text-amber-700 hover:underline">
-              Privacy Policy
-            </Link>
+          {/* Terms and privacy  FOR FUTURE SCOPE IF WE GET TIME*/}
+         
           </div>
         </div>
       </div>
-    </div>
   );
 }
