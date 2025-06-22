@@ -1,7 +1,7 @@
 // entry point for vercel
 
-import connectDB from './config/database.js';
-import app from './app.js';
+import connectDB from "./config/database.config.js";
+import app from "./app.js";
 
 export default async (req, res) => {
   if (!global.dbConnected) {

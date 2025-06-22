@@ -1,6 +1,6 @@
 import "dotenv/config";
 import mongoose from "mongoose";
-import connectDB from "../api/config/database.js";
+import connectDB from "../api/config/database.config.js";
 import { beforeAll, afterAll } from "vitest";
 
 beforeAll(async () => {

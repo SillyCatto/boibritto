@@ -1,7 +1,7 @@
 // used for local dev
 
 import "dotenv/config";
-import connectDB from "./config/database.js";
+import connectDB from "./config/database.config.js";
 import app from "./app.js";
 
 import { logInfo, logError } from "./utils/logger.js";
