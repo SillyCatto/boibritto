@@ -1,4 +1,4 @@
-const chalk = require("chalk");
+import chalk from "chalk";
 
 const getTimestamp = () => {
   const now = new Date();
@@ -47,12 +47,12 @@ const logError = (message, error = null) => {
     if (error instanceof Error) {
       console.error(
         chalk.red.underline("error message:"),
-        chalk.red(error.message),
+        chalk.red(error.message)
       );
       if (error.stack) {
         console.error(
           chalk.red.underline("stack trace:"),
-          chalk.red(error.stack),
+          chalk.red(error.stack)
         );
       }
     } else {
@@ -61,8 +61,4 @@ const logError = (message, error = null) => {
   }
 };
 
-module.exports = {
-  logInfo,
-  logWarning,
-  logError,
-};
+export { logInfo, logWarning, logError };

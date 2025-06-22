@@ -1,8 +1,8 @@
-const Collection = require("../models/collection.models");
-const mongoose = require("mongoose");
-const { sendSuccess, sendError } = require("../utils/response");
-const HTTP = require("../utils/httpStatus");
-const { logError } = require("../utils/logger");
+import Collection from '../models/collection.models.js';
+import mongoose from 'mongoose';
+import {  sendSuccess, sendError  } from '../utils/response.js';
+import HTTP from '../utils/httpStatus.js';
+import {  logError  } from '../utils/logger.js';
 
 const getCollectionsList = async (req, res) => {
   try {
@@ -231,7 +231,7 @@ const deleteCollection = async (req, res) => {
   }
 };
 
-module.exports.CollectionController = {
+export const CollectionController = {
   getCollectionsList,
   getOneCollectionByID,
   createCollection,

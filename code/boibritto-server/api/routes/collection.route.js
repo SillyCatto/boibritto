@@ -1,7 +1,7 @@
-const express = require("express");
-const {
+import express from 'express';
+import { 
   CollectionController,
-} = require("../controllers/collection.controller");
+ } from '../controllers/collection.controller.js';
 
 const collectionRoute = express.Router();
 
@@ -15,4 +15,4 @@ collectionRoute.patch("/:id", CollectionController.updateCollection);
 
 collectionRoute.delete("/:id", CollectionController.deleteCollection);
 
-module.exports = collectionRoute;
+export default collectionRoute;

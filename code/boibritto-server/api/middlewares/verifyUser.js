@@ -1,8 +1,8 @@
-const { sendError } = require("../utils/response");
-const HTTP = require("../utils/httpStatus");
-const User = require("../models/user.models");
-const { verifyFirebaseToken } = require("../services/firebase.service");
-const { logError } = require("../utils/logger");
+import { sendError } from "../utils/response.js";
+import HTTP from "../utils/httpStatus.js";
+import User from "../models/user.models.js";
+import { verifyFirebaseToken } from "../services/firebase.service.js";
+import { logError } from "../utils/logger.js";
 
 const verifyUser = async (req, res, next) => {
   try {
@@ -15,7 +15,7 @@ const verifyUser = async (req, res, next) => {
       return sendError(
         res,
         HTTP.UNAUTHORIZED,
-        "unauthorized: user not registered",
+        "unauthorized: user not registered"
       );
     }
 
@@ -26,9 +26,9 @@ const verifyUser = async (req, res, next) => {
     return sendError(
       res,
       HTTP.UNAUTHORIZED,
-      "unauthorized: invalid or expired token",
+      "unauthorized: invalid or expired token"
     );
   }
 };
 
-module.exports = verifyUser;
+export default verifyUser;

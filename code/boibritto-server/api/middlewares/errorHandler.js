@@ -1,6 +1,6 @@
-const { sendError } = require("../utils/response");
-const HTTP = require("../utils/httpStatus");
-const { logWarning, logError } = require("../utils/logger");
+import { sendError } from "../utils/response.js";
+import HTTP from "../utils/httpStatus.js";
+import { logWarning, logError } from "../utils/logger.js";
 
 const jsonErrorHandler = (err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
@@ -12,7 +12,7 @@ const jsonErrorHandler = (err, req, res, next) => {
     return sendError(
       res,
       HTTP.BAD_REQUEST,
-      "invalid JSON payload in request body",
+      "invalid JSON payload in request body"
     );
   }
   next(err);
@@ -33,12 +33,8 @@ const globalErrorHandler = (err, req, res, next) => {
   return sendError(
     res,
     HTTP.INTERNAL_SERVER_ERROR,
-    "An unexpected error occurred",
+    "An unexpected error occurred"
   );
 };
 
-module.exports = {
-  jsonErrorHandler,
-  routeNotFoundHandler,
-  globalErrorHandler,
-};
+export { jsonErrorHandler, routeNotFoundHandler, globalErrorHandler };

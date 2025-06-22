@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { GENRES } = require("../utils/constants");
+import mongoose from 'mongoose';
+import {  GENRES  } from '../utils/constants.js';
 
 const discussionSchema = new mongoose.Schema(
     {
@@ -24,4 +24,4 @@ const discussionSchema = new mongoose.Schema(
     }
 );
 
-module.exports = mongoose.model("Discussion", discussionSchema);
+export default mongoose.model("Discussion", discussionSchema);

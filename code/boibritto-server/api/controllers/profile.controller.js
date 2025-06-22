@@ -1,10 +1,10 @@
-const User = require("../models/user.models");
-const Collection = require("../models/collection.models");
-const ReadingList = require("../models/readingList.models");
-const Blog = require("../models/blog.models");
-const HTTP = require("../utils/httpStatus");
-const { sendSuccess, sendError } = require("../utils/response");
-const { logError } = require("../utils/logger");
+import User from '../models/user.models.js';
+import Collection from '../models/collection.models.js';
+import ReadingList from '../models/readingList.models.js';
+import Blog from '../models/blog.models.js';
+import HTTP from '../utils/httpStatus.js';
+import {  sendSuccess, sendError  } from '../utils/response.js';
+import {  logError  } from '../utils/logger.js';
 
 const getCurrentProfile = async (req, res) => {
   try {
@@ -49,6 +49,6 @@ const getCurrentProfile = async (req, res) => {
   }
 };
 
-module.exports.ProfileController = {
+export const ProfileController = {
   getCurrentProfile,
 };

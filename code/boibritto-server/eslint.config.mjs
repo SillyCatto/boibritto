@@ -11,13 +11,13 @@ export default defineConfig([
   {
     files: ["**/*.js"],
     languageOptions: {
-      sourceType: "commonjs",
+      sourceType: "module",
     },
   },
   {
     files: ["**/*.{js,mjs,cjs}"],
     languageOptions: {
-      globals: globals.node, // ✅ Use Node.js globals like `process`
+      globals: globals.node, // use Node.js globals like `process`
     },
   },
 ]);

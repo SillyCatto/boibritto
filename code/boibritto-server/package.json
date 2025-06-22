@@ -2,20 +2,27 @@
   "name": "express",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "api/index.js",
+  "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --config vitest.config.mjs",
     "dev": "nodemon api/server.js",
-    "start": "node api/server.js"
+    "start": "node api/server.js",
+    "convert": "node convert-to-esm.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@adminjs/express": "^6.1.1",
+    "@adminjs/mongoose": "^4.1.0",
+    "adminjs": "^7.8.16",
     "chalk": "^4.1.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "express-formidable": "^1.2.0",
+    "express-session": "^1.18.1",
     "firebase-admin": "^13.4.0",
     "mongoose": "^8.15.0"
   },

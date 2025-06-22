@@ -1,4 +1,4 @@
-const admin = require("../config/firebase");
+import admin from "../config/firebase.js";
 
 const verifyFirebaseToken = async (authHeader) => {
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -14,4 +14,4 @@ const verifyFirebaseToken = async (authHeader) => {
   return decodedToken;
 };
 
-module.exports = { verifyFirebaseToken };
+export { verifyFirebaseToken };

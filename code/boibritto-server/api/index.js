@@ -1,9 +1,9 @@
 // entry point for vercel
 
-const connectDB = require("./config/database");
-const app = require("./app");
+import connectDB from './config/database.js';
+import app from './app.js';
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   if (!global.dbConnected) {
     try {
       await connectDB();

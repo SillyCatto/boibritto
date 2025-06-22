@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from 'mongoose';
 
 const connectionSchema = new mongoose.Schema(
     {
@@ -24,4 +24,4 @@ const connectionSchema = new mongoose.Schema(
 // Prevent duplicate connection requests
 connectionSchema.index({ from: 1, to: 1 }, { unique: true });
 
-module.exports = mongoose.model("Connection", connectionSchema);
+export default mongoose.model("Connection", connectionSchema);

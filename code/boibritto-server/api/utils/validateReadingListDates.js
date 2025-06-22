@@ -27,4 +27,4 @@ function validateReadingListDates(data) {
   return null; // valid
 }
 
-module.exports = validateReadingListDates;
+export default validateReadingListDates;

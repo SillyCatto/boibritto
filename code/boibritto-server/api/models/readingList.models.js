@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from 'mongoose';
 
 const readingListSchema = new mongoose.Schema(
   {
@@ -46,4 +46,4 @@ const readingListSchema = new mongoose.Schema(
 // compound unique index to prevent duplicate entry
 readingListSchema.index({ user: 1, volumeId: 1 }, { unique: true });
 
-module.exports = mongoose.model("ReadingList", readingListSchema);
+export default mongoose.model("ReadingList", readingListSchema);
