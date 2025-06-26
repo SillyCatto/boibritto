@@ -33,7 +33,7 @@ Ex-
 
 - #### [Auth](#auth-routes)
 - #### [Profile](#profile-routes)
-- #### [Collections](#collections-routes)
+- #### [Collections](#collection-routes)
 - #### [Reading List](#reading-list-routes)
 - #### [Blogs](#blog-routes)
 
@@ -257,6 +257,170 @@ Sample response:
         "genres": [],
         "createdAt": "2025-06-09T17:05:06.094Z",
         "updatedAt": "2025-06-09T17:05:06.094Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### Update Current User's Profile
+
+**PATCH** `/api/profile/me`
+
+**Behavior:**
+
+* Allows the authenticated user to update their profile information.
+* Only `username`, `bio`, and `interestedGenres` can be modified.
+* All fields are optional - you can update one or multiple fields in a single request.
+
+**Headers:**
+
+```
+Authorization: Bearer <FIREBASE_ID_TOKEN>
+Content-Type: application/json
+```
+
+**Input:** `req.body.data`
+
+```json
+{
+  "username": "new_username",
+  "bio": "Updated bio text",
+  "interestedGenres": ["sci-fi", "fantasy", "mystery"]
+}
+```
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "data": {
+    "profile": { /* Updated user profile data */ }
+  }
+}
+```
+
+<br>
+
+Sample request:
+```json
+{
+  "data": {
+    "username": "bookworm123",
+    "bio": "Passionate reader and book reviewer",
+    "interestedGenres": ["fiction", "mystery", "biography"]
+  }
+}
+```
+
+Sample response:
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "data": {
+    "profile": {
+      "_id": "6843292c5cc2e9ee0b9bc0a9",
+      "uid": "55eO2tO...",
+      "email": "test@example.com",
+      "username": "bookworm123",
+      "displayName": "TestUser",
+      "bio": "Passionate reader and book reviewer",
+      "avatar": "Dummy avatar",
+      "interestedGenres": ["fiction", "mystery", "biography"],
+      "createdAt": "2025-06-06T17:45:16.747Z",
+      "updatedAt": "2025-06-26T10:30:45.123Z"
+    }
+  }
+}
+```
+
+---
+
+### Get User's Public Profile
+
+**GET** `/api/profile/:userID`
+
+**Behavior:**
+
+* Returns minimal preview data of a specific user's **public** content only, including:
+  * Non-sensitive profile data (excludes email, firebase uid)
+  * Up to 5 most recent **public** collections
+  * Up to 5 most recent **public** reading tracker items
+  * Up to 5 most recent **public** blogs
+
+**Headers:**
+
+```
+Authorization: Bearer <FIREBASE_ID_TOKEN>
+```
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "User profile data fetched successfully",
+  "data": {
+    "profile_data": { /* Public user profile data */ },
+    "collections": [ /* Array of public collections */ ],
+    "reading_tracker": [ /* Array of public reading list items */ ],
+    "blogs": [ /* Array of public blogs */ ]
+  }
+}
+```
+
+<br>
+
+Sample response:
+```json
+{
+  "success": true,
+  "message": "User profile data fetched successfully",
+  "data": {
+    "profile_data": {
+      "_id": "6843292c5cc2e9ee0b9bc0a9",
+      "username": "bookworm",
+      "displayName": "Book Lover",
+      "bio": "Passionate about sci-fi and fantasy novels",
+      "avatar": "https://lh3.googleusercontent.com/...",
+      "interestedGenres": ["sci-fi", "fantasy", "mystery"],
+      "createdAt": "2025-06-06T17:45:16.747Z",
+      "updatedAt": "2025-06-20T10:30:45.123Z"
+    },
+    "collections": [
+      {
+        "_id": "68445fbc6a03d373c39b9031",
+        "title": "Best Sci-Fi Books",
+        "description": "My favorite science fiction novels",
+        "visibility": "public",
+        "createdAt": "2025-06-07T15:50:20.549Z",
+        "updatedAt": "2025-06-11T18:55:06.626Z"
+      }
+    ],
+    "reading_tracker": [
+      {
+        "_id": "68544cd26b3874a436296d28",
+        "volumeId": "book-id-5",
+        "status": "completed",
+        "visibility": "public",
+        "createdAt": "2025-06-19T17:45:54.156Z",
+        "updatedAt": "2025-06-19T17:45:54.156Z"
+      }
+    ],
+    "blogs": [
+      {
+        "_id": "6847133861841477d982ac22",
+        "title": "Why I Love Science Fiction",
+        "visibility": "public",
+        "spoilerAlert": false,
+        "genres": ["sci-fi"],
+        "createdAt": "2025-06-09T17:00:40.091Z",
+        "updatedAt": "2025-06-09T17:21:56.138Z"
       }
     ]
   }
@@ -1202,3 +1366,4 @@ Sample response:
 ```
 
 ---
+
