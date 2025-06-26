@@ -1,8 +1,6 @@
 import { AdminJS } from "adminjs";
 import { buildAuthenticatedRouter } from "@adminjs/express";
 import { Database, Resource } from "@adminjs/mongoose";
-import express from "express";
-import session from "express-session";
 
 import { verifyAdminEmail } from "./firebase.service.js";
 import { logError, logInfo } from "../utils/logger.js";
@@ -58,6 +56,7 @@ const authenticate = async (email, password) => {
 };
 
 // create AdminJS instance with imported configs
+// eslint-disable-next-line no-unused-vars
 const setupAdmin = (app) => {
   const adminJS = new AdminJS(adminConfig);
 
@@ -81,10 +80,8 @@ const setupAdmin = (app) => {
     }
   );
 
-  // mount the admin dashboard at the exact rootPath
-  app.use(adminJS.options.rootPath, router);
-
-  return router;
+  // Return both the AdminJS instance and router for proper mounting
+  return { adminJS, router };
 };
 
 export default setupAdmin;

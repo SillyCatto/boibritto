@@ -30,6 +30,9 @@ app.use(express.json());
 
 app.use(jsonErrorHandler);
 
+// Serve static files for AdminJS
+app.use(express.static('public'));
+
 // import routers
 // import legacyAdminRouter from "./routes/admin.route.js";
 
@@ -53,8 +56,9 @@ app.use("/api/reading-list", verifyUser, readingListRouter);
 // app.use("/api/boibritto-internals/admin", verifyAdmin, legacyAdminRouter);
 
 // setup adminjs
-const adminRouter = setupAdmin(app);
-app.use("/boibritto-internals-02354862/admin", adminRouter);
+const { adminJS, router: adminRouter } = setupAdmin(app);
+// mount  adminRouter at adminJS rootPath
+app.use(adminJS.options.rootPath, adminRouter);
 
 app.use(routeNotFoundHandler);
 app.use(globalErrorHandler);

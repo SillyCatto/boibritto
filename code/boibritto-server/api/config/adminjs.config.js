@@ -5,6 +5,7 @@ import ReadingList from "../models/readingList.models.js";
 // import Comment from "../models/comment.models.js";
 
 import AdminModel from "../models/admin.models.js";
+import customTheme from "./adminjs.theme.js";
 
 // adminjs config
 // contains all resources and their options
@@ -71,7 +72,31 @@ const adminConfig = {
     companyName: "BoiBritto Admin Panel",
     logo: false,
     softwareBrothers: false,
+    favicon: "/admin-assets/favicon.svg",
+    theme: customTheme,
+    // Add custom login styling
+    withMadeWithLove: false,
   },
+  
+  // Global CSS overrides
+  // assets: {
+  //   styles: ['/admin-custom.css'],
+  // },
+
+  // Login page customization
+  // locale: {
+  //   translations: {
+  //     labels: {
+  //       loginWelcome: 'Welcome to BoiBritto Admin Portal',
+  //       login: 'Sign In',
+  //       email: 'Email Address',
+  //       password: 'Password',
+  //     },
+  //     messages: {
+  //       loginWelcome: 'Secure admin access for content management',
+  //     },
+  //   },
+  // },
 };
 
 export default adminConfig;

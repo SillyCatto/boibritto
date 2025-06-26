@@ -50,7 +50,7 @@ public/packs/
 .nuxt/
 # Gatsby files
 .cache/
-public
+# public
 
 # TypeScript specific
 *.tsbuildinfo
