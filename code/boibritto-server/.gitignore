@@ -18,6 +18,7 @@ jspm_packages/
 bower_components/
 
 .vercel
+.adminjs
 
 # Optional npm cache directory
 .npm
@@ -49,7 +50,7 @@ public/packs/
 .nuxt/
 # Gatsby files
 .cache/
-public
+# public
 
 # TypeScript specific
 *.tsbuildinfo

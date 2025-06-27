@@ -1,6 +1,6 @@
 // simulate user auth during tests for firebase auth service protected route
 
-const fetch = require("node-fetch");
+import fetch from 'node-fetch';
 
 const FIREBASE_AUTH_EMULATOR_HOST =
   process.env.FIREBASE_AUTH_EMULATOR_HOST || "localhost:9099";
@@ -49,4 +49,4 @@ async function createTestUserAndGetIdToken({ email, password }) {
   return data.idToken;
 }
 
-module.exports = { createTestUserAndGetIdToken };
+export default { createTestUserAndGetIdToken };

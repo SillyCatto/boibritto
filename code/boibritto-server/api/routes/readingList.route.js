@@ -1,7 +1,7 @@
-const express = require("express");
-const {
+import express from 'express';
+import { 
   ReadingListController,
-} = require("../controllers/readingList.controller");
+ } from '../controllers/readingList.controller.js';
 
 const readingListRoute = express.Router();
 
@@ -15,4 +15,4 @@ readingListRoute.patch("/:id", ReadingListController.updateReadingListItem);
 
 readingListRoute.delete("/:id", ReadingListController.deleteReadingListItem);
 
-module.exports = readingListRoute;
+export default readingListRoute;

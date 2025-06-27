@@ -1,5 +1,4 @@
-require("dotenv").config();
-
+import "dotenv/config";
 import request from "supertest";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import app from "../api/app.js";

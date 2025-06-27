@@ -4,6 +4,21 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
+// Helper to safely render <p> tags as real paragraphs
+function renderDescription(desc?: string) {
+  if (!desc) return <span>No description available.</span>;
+  // Replace <br> and <br/> with newlines for safety
+  let clean = desc.replace(/<br\s*\/?>/gi, "\n");
+  // Split by <p> tags
+  const paragraphs = clean
+    .split(/<\/?p>/gi)
+    .map(s => s.trim())
+    .filter(Boolean);
+  return paragraphs.map((para, idx) => (
+    <p key={idx} className="mb-3 last:mb-0 text-gray-800 text-sm">{para}</p>
+  ));
+}
+
 export default function BookDetailPage() {
   const { id } = useParams();
   const [book, setBook] = useState<any>(null);
@@ -94,8 +109,8 @@ export default function BookDetailPage() {
           </div>
           <div className="bg-amber-50 rounded-lg p-4 shadow-inner">
             <h2 className="text-lg font-semibold text-amber-700 mb-2">Description</h2>
-            <div className="text-gray-800 whitespace-pre-line text-sm">
-              {info.description || "No description available."}
+            <div>
+              {renderDescription(info.description)}
             </div>
           </div>
           <div className="mt-6">
@@ -105,6 +120,6 @@ export default function BookDetailPage() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+      </div>
+    );
+    }

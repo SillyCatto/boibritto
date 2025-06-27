@@ -1,15 +1,17 @@
-const express = require("express");
-const cors = require("cors");
+import express from "express";
+import cors from "cors";
 
-const attachUser = require("./middlewares/attachUser");
-const verifyUser = require("./middlewares/verifyUser");
-const verifyAdmin = require("./middlewares/verifyAdmin");
+import attachUser from "./middlewares/attachUser.js";
+import verifyUser from "./middlewares/verifyUser.js";
 
-const {
+// import verifyAdmin from "./middlewares/verifyAdmin.js";
+import setupAdmin from "./services/adminjs.service.js";
+
+import {
   jsonErrorHandler,
   routeNotFoundHandler,
   globalErrorHandler,
-} = require("./middlewares/errorHandler");
+} from "./middlewares/errorHandler.js";
 
 const app = express();
 
@@ -28,28 +30,37 @@ app.use(express.json());
 
 app.use(jsonErrorHandler);
 
+// Serve static files for AdminJS
+app.use(express.static('public'));
+
 // import routers
-const adminRouter = require("./routes/admin.route");
+// import legacyAdminRouter from "./routes/admin.route.js";
 
-const testRouter = require("./routes/test.route");
+import testRouter from "./routes/test.route.js";
 
-const authRouter = require("./routes/auth.route");
-const collectionRouter = require("./routes/collection.route");
-const blogRouter = require("./routes/blog.route");
-const readingListRouter = require("./routes/readingList.route");
-const profileRouter = require("./routes/profile.route");
+import authRouter from "./routes/auth.route.js";
+import collectionRouter from "./routes/collection.route.js";
+import blogRouter from "./routes/blog.route.js";
+import readingListRouter from "./routes/readingList.route.js";
+import profileRouter from "./routes/profile.route.js";
 
 // use routes
 app.use("/api/test", testRouter);
 app.use("/api/auth", attachUser, authRouter);
+app.use("/api/profile", verifyUser, profileRouter);
 app.use("/api/collections", verifyUser, collectionRouter);
 app.use("/api/blogs", verifyUser, blogRouter);
 app.use("/api/reading-list", verifyUser, readingListRouter);
-app.use("/api/profile", verifyUser, profileRouter);
 
-app.use("/api/boibritto-internals/admin", verifyAdmin, adminRouter);
+// Legacy admin route
+// app.use("/api/boibritto-internals/admin", verifyAdmin, legacyAdminRouter);
+
+// setup adminjs
+const { adminJS, router: adminRouter } = setupAdmin(app);
+// mount  adminRouter at adminJS rootPath
+app.use(adminJS.options.rootPath, adminRouter);
 
 app.use(routeNotFoundHandler);
 app.use(globalErrorHandler);
 
-module.exports = app;
+export default app;

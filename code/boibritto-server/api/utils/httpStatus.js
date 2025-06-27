@@ -63,4 +63,4 @@ HTTP.isClientError = (code) => code >= 400 && code < 500;
 HTTP.isServerError = (code) => code >= 500 && code < 600;
 HTTP.isError = (code) => code >= 400 && code < 600;
 
-module.exports = HTTP;
+export default HTTP;

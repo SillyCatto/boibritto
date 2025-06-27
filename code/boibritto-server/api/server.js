@@ -1,10 +1,10 @@
 // used for local dev
 
-require("dotenv").config();
-const connectDB = require("./config/database");
-const app = require("./app");
+import "dotenv/config";
+import connectDB from "./config/database.config.js";
+import app from "./app.js";
 
-const { logInfo, logError } = require("./utils/logger");
+import { logInfo, logError } from "./utils/logger.js";
 
 const PORT = process.env.PORT || 5001;
 

@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { GENRES } = require("../utils/constants");
+import mongoose from 'mongoose';
+import {  GENRES  } from '../utils/constants.js';
 
 const userBookSchema = new mongoose.Schema(
     {
@@ -49,4 +49,4 @@ const userBookSchema = new mongoose.Schema(
     }
 );
 
-module.exports = mongoose.model("UserBook", userBookSchema);
+export default mongoose.model("UserBook", userBookSchema);

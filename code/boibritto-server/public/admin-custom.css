@@ -1,0 +1,24 @@
+/* AdminJS Custom Styling - BoiBritto Theme */
+
+/* CSS Variables for consistency */
+:root {
+  --primary: #F59E0B;
+  --primary-dark: #D97706;
+  --primary-darker: #B45309;
+  --primary-light: #F3E8A1;
+  --primary-lighter: #FEF3C7;
+  --bg-primary: #FFFBEB;
+  --text-primary: #7C2D12; /* Darker for better contrast */
+  --text-secondary: #4B5563; /* Darker gray */
+  --text-dark: #1F2937;
+  --border-color: #E5E7EB;
+  --shadow-primary: 0 10px 25px rgba(245, 158, 11, 0.1);
+  --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.05);
+
+  /* Better contrast colors */
+  --accent-bg: #FFF8E1;
+  --accent-border: #E6CC00;
+  --table-header-bg: #F5F5DC;
+  --table-text: #374151; /* Dark text for tables */
+  --sidebar-text: #6B2908; /* Dark amber for sidebar */
+}

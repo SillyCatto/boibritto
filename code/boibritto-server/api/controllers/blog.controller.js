@@ -1,9 +1,9 @@
-const Blog = require("../models/blog.models");
-const mongoose = require("mongoose");
-const { logError } = require("../utils/logger");
-const { sendSuccess, sendError } = require("../utils/response");
-const HTTP = require("../utils/httpStatus");
-const { GENRES } = require("../utils/constants");
+import Blog from '../models/blog.models.js';
+import mongoose from 'mongoose';
+import {  logError  } from '../utils/logger.js';
+import {  sendSuccess, sendError  } from '../utils/response.js';
+import HTTP from '../utils/httpStatus.js';
+import {  GENRES  } from '../utils/constants.js';
 
 const getBlogsList = async (req, res) => {
   try {
@@ -193,7 +193,7 @@ const deleteBlog = async (req, res) => {
   }
 };
 
-module.exports.BlogController = {
+export const BlogController = {
   getBlogsList,
   getOneBlogByID,
   createBlog,

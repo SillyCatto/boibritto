@@ -69,32 +69,36 @@ export default function ExplorePage() {
     fetchBooks();
   }, [category, currentPage]); // Fetch books when category or page changes
 
-  const fetchBooks = async () => {
-    setLoading(true);
-    setError("");
-    
-    try {
-      const searchTerm = category === "all" ? query : category;
-      const startIndex = currentPage * maxResults;
-      
-      const response = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${searchTerm}&maxResults=${maxResults}&startIndex=${startIndex}`
-      );
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch books");
-      }
-      
-      const data = await response.json();
-      setBooks(data.items || []);
-      setTotalItems(data.totalItems || 0);
-    } catch (err) {
-      setError("Error fetching books. Please try again later.");
-      console.error(err);
-    } finally {
-      setLoading(false);
+const fetchBooks = async () => {
+  setLoading(true);
+  setError("");
+  try {
+    let searchTerm = "";
+    if (category === "all") {
+      searchTerm = query.trim() !== "" ? query : "book"; // Default term for "All"
+    } else {
+      searchTerm = category;
     }
-  };
+    const startIndex = currentPage * maxResults;
+
+    const response = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchTerm)}&maxResults=${maxResults}&startIndex=${startIndex}`
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch books");
+    }
+
+    const data = await response.json();
+    setBooks(data.items || []);
+    setTotalItems(data.totalItems || 0);
+  } catch (err) {
+    setError("Error fetching books. Please try again later.");
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

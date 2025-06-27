@@ -9,4 +9,4 @@ const checkOwner = (documentUserField, userId) => {
   return documentUserId === userId.toString();
 };
 
-module.exports = { checkOwner };
+export { checkOwner };

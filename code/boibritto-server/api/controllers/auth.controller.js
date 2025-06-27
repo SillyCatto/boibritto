@@ -1,7 +1,7 @@
-const HTTP = require("../utils/httpStatus");
-const User = require("../models/user.models");
-const { sendSuccess, sendError } = require("../utils/response");
-const { logError } = require("../utils/logger");
+import HTTP from "../utils/httpStatus.js";
+import User from "../models/user.models.js";
+import { sendSuccess, sendError } from "../utils/response.js";
+import { logError } from "../utils/logger.js";
 
 const loginUser = async (req, res) => {
   try {
@@ -48,7 +48,7 @@ const signupUser = async (req, res) => {
   }
 };
 
-module.exports.AuthController = {
+export const AuthController = {
   loginUser,
   signupUser,
 };

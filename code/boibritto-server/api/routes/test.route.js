@@ -1,7 +1,7 @@
-const express = require("express");
-const verifyFirebaseToken = require("../middlewares/verifyUser");
-const { sendSuccess, sendError } = require("../utils/response");
-const HTTP = require("../utils/httpStatus");
+import express from 'express';
+import verifyFirebaseToken from '../middlewares/verifyUser.js';
+import {  sendSuccess, sendError  } from '../utils/response.js';
+import HTTP from '../utils/httpStatus.js';
 
 const testRoute = express.Router();
 
@@ -27,4 +27,4 @@ testRoute.get("/protected", verifyFirebaseToken, (req, res) => {
   }
 });
 
-module.exports = testRoute;
+export default testRoute;

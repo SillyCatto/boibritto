@@ -1,10 +1,10 @@
-const express = require("express");
+import express from "express";
 const adminRoute = express.Router();
-const User = require("../models/user.models");
+import User from "../models/user.models.js";
 
-const { sendSuccess, sendError } = require("../utils/response");
-const HTTP = require("../utils/httpStatus");
-const { logError } = require("../utils/logger");
+import { sendSuccess, sendError } from "../utils/response.js";
+import HTTP from "../utils/httpStatus.js";
+import { logError } from "../utils/logger.js";
 
 // get all users
 adminRoute.get("/users", async (req, res) => {
@@ -17,4 +17,4 @@ adminRoute.get("/users", async (req, res) => {
   }
 });
 
-module.exports = adminRoute;
+export default adminRoute;

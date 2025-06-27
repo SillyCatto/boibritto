@@ -1,0 +1,18 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded rectangle background -->
+  <rect width="32" height="32" rx="8" fill="url(#bgGradient)"/>
+  
+  <!-- Letter "B" -->
+  <text x="16" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF">B</text>
+  
+  <!-- Subtle highlight -->
+  <rect x="2" y="2" width="28" height="12" rx="6" fill="rgba(255,255,255,0.15)"/>
+</svg>

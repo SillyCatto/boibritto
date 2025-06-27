@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { GENRES } = require("../utils/constants");
+import mongoose from 'mongoose';
+import {  GENRES  } from '../utils/constants.js';
 
 
 const blogSchema = new mongoose.Schema(
@@ -22,4 +22,4 @@ const blogSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model("Blog", blogSchema);
+export default mongoose.model("Blog", blogSchema);

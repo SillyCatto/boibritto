@@ -1,11 +1,13 @@
-require("dotenv").config();
-const admin = require("firebase-admin");
+import "dotenv/config";
+import admin from "firebase-admin";
 
-const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY || "";
 
-const formattedPrivateKey = rawPrivateKey.includes("\\n")
-  ? rawPrivateKey.replace(/\\n/g, "\n")
-  : rawPrivateKey;
+// Safe handling to avoid null/undefined errors
+const formattedPrivateKey =
+  rawPrivateKey && rawPrivateKey.includes("\\n")
+    ? rawPrivateKey.replace(/\\n/g, "\n")
+    : rawPrivateKey;
 
 if (!admin.apps.length) {
   if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
@@ -24,4 +26,4 @@ if (!admin.apps.length) {
   }
 }
 
-module.exports = admin;
+export default admin;
