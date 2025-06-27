@@ -10,7 +10,7 @@ pids
 *.pid.lock
 
 # utility scripts
-scripts/
+# scripts/
 
 # Dependency directories
 node_modules/
