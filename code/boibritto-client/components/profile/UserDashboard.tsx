@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import axios from "axios";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { initFirebase } from "@/lib/googleAuth";
+
+// Initialize Firebase
+initFirebase();
 
 interface ProfileData {
   _id: string;
@@ -51,34 +57,95 @@ export default function UserDashboard() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [readingList, setReadingList] = useState<ReadingItem[]>([]);
   const [blogs, setBlogs] = useState<Blog[]>([]);
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  
   useEffect(() => {
     const fetchProfileData = async () => {
+      setLoading(true);
+      setError("");
+      
       try {
-        const token = await window.firebase.auth().currentUser?.getIdToken();
-        const res = await fetch("/api/profile/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const json = await res.json();
-
-        if (json.success) {
-          setProfile(json.data.profile_data);
-          setCollections(json.data.collections || []);
-          setReadingList(json.data.reading_tracker || []);
-          setBlogs(json.data.blogs || []);
+        const auth = getAuth();
+        
+        if (!auth.currentUser) {
+          setError("User not authenticated");
+          setLoading(false);
+          return;
         }
-      } catch (error) {
+        
+        const token = await auth.currentUser.getIdToken();
+        
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/profile/me`, 
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
+            withCredentials: true
+          }
+        );
+        
+        const { data } = response;
+        
+        if (data.success) {
+          setProfile(data.data.profile_data);
+          setCollections(data.data.collections || []);
+          setReadingList(data.data.reading_tracker || []);
+          setBlogs(data.data.blogs || []);
+        } else {
+          setError(data.message || "Failed to load profile data");
+        }
+      } catch (error: any) {
         console.error("Failed to load profile data:", error);
+        setError(error?.response?.data?.message || error?.message || "Failed to load profile data");
+      } finally {
+        setLoading(false);
       }
     };
-
-    fetchProfileData();
+    
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchProfileData();
+      } else {
+        setError("Please log in to view your dashboard");
+        setLoading(false);
+      }
+    });
+    
+    return () => unsubscribe();
   }, []);
 
-  if (!profile) return <div className="text-center py-10">Loading profile...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-red-600">{error}</p>
+        <button 
+          className="mt-4 px-4 py-2 bg-amber-700 text-white rounded-lg"
+          onClick={() => window.location.href = "/signin"}
+        >
+          Go to Sign In
+        </button>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="text-center py-10">
+        <p>No profile data found</p>
+      </div>
+    );
+  }
 
   return (
     <main className="bg-white text-gray-900 py-16 px-6 sm:px-10 min-h-screen">
@@ -132,42 +199,53 @@ export default function UserDashboard() {
         <div>
           {activeTab === "My Collections" && (
             <div className="space-y-4">
-              {collections.map((collection) => (
-                <div key={collection._id} className="border p-4 rounded-xl bg-amber-50">
-                  <h3 className="font-semibold text-amber-700">{collection.title}</h3>
-                  <p className="text-gray-700 text-sm">{collection.description}</p>
-                </div>
-              ))}
+              {collections.length > 0 ? (
+                collections.map((collection) => (
+                  <div key={collection._id} className="border p-4 rounded-xl bg-amber-50">
+                    <h3 className="font-semibold text-amber-700">{collection.title}</h3>
+                    <p className="text-gray-700 text-sm">{collection.description}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">You have no collections yet</p>
+              )}
             </div>
           )}
 
           {activeTab === "Reading Tracker" && (
             <div className="space-y-2">
-              {readingList.map((item) => (
-                <div key={item._id} className="border p-3 rounded-md bg-amber-50 text-sm">
-                  Volume ID: <strong>{item.volumeId}</strong> — Status: <span className="text-amber-700">{item.status}</span>
-                </div>
-              ))}
+              {readingList.length > 0 ? (
+                readingList.map((item) => (
+                  <div key={item._id} className="border p-3 rounded-md bg-amber-50 text-sm">
+                    Volume ID: <strong>{item.volumeId}</strong> — Status: <span className="text-amber-700">{item.status}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">Your reading list is empty</p>
+              )}
             </div>
           )}
 
           {activeTab === "Blogs" && (
             <div className="space-y-3">
-              {blogs.map((blog) => (
-                <div key={blog._id} className="border p-3 rounded-md bg-amber-50">
-                  <h4 className="font-semibold text-amber-700">{blog.title}</h4>
-                  <p className="text-xs text-gray-500">Visibility: {blog.visibility}</p>
-                </div>
-              ))}
+              {blogs.length > 0 ? (
+                blogs.map((blog) => (
+                  <div key={blog._id} className="border p-3 rounded-md bg-amber-50">
+                    <h4 className="font-semibold text-amber-700">{blog.title}</h4>
+                    <p className="text-xs text-gray-500">Visibility: {blog.visibility}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">You haven't created any blogs yet</p>
+              )}
             </div>
           )}
 
           {activeTab === "Discussions" && (
-            <div className="text-gray-600">/* Discussions tab: coming soon */</div>
+            <div className="text-gray-600 text-center py-4">Discussions feature coming soon</div>
           )}
         </div>
       </div>
     </main>
   );
 }
-
