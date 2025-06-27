@@ -52,7 +52,7 @@ export default function BookDetailPage() {
   }
 
   const info = book.volumeInfo || {};
-
+// ...existing code...
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white py-12 px-4">
       <div className="max-w-4xl mx-auto grid md:grid-cols-3 gap-8 bg-white rounded-2xl shadow-lg p-8">
@@ -80,6 +80,16 @@ export default function BookDetailPage() {
           >
             Add to Collection List
           </button>
+          {/* Beautiful Back to Explore Button */}
+          <Link
+            href="/explore"
+            className="w-full mt-4 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-amber-200 bg-white text-amber-700 font-semibold shadow hover:bg-amber-50 hover:text-amber-800 transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Explore
+          </Link>
         </div>
 
         {/* Book Details Tile */}
@@ -113,13 +123,10 @@ export default function BookDetailPage() {
               {renderDescription(info.description)}
             </div>
           </div>
-          <div className="mt-6">
-            <Link href="/explore" className="text-amber-700 hover:underline">
-              ← Back to Explore
-            </Link>
-          </div>
         </div>
       </div>
-      </div>
-    );
+    </div>
+  );
+// ...existing code...
+
     }
