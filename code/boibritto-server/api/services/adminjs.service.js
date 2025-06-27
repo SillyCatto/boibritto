@@ -60,6 +60,11 @@ const authenticate = async (email, password) => {
 const setupAdmin = (app) => {
   const adminJS = new AdminJS(adminConfig);
 
+  // Build frontend code with custom components in development
+  if (process.env.NODE_ENV !== "production") {
+    adminJS.watch();
+  }
+
   const router = buildAuthenticatedRouter(
     adminJS,
     {

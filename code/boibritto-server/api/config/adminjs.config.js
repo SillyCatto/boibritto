@@ -2,10 +2,11 @@ import User from "../models/user.models.js";
 import Blog from "../models/blog.models.js";
 import Collection from "../models/collection.models.js";
 import ReadingList from "../models/readingList.models.js";
+import Admin from "../models/admin.models.js";
 // import Comment from "../models/comment.models.js";
 
-import AdminModel from "../models/admin.models.js";
 import customTheme from "./adminjs.theme.js";
+import { componentLoader, Components } from "../../components/components.js";
 
 // adminjs config
 // contains all resources and their options
@@ -43,7 +44,7 @@ const adminConfig = {
     //   },
     // },
     {
-      resource: AdminModel,
+      resource: Admin,
       options: {
         navigation: { name: "Admin Management" },
         actions: {
@@ -72,30 +73,20 @@ const adminConfig = {
     companyName: "BoiBritto Admin Panel",
     logo: false,
     softwareBrothers: false,
-    favicon: "/admin-assets/favicon.svg",
+    favicon: "/favicon.svg",
     theme: customTheme,
-    // Add custom login styling
     withMadeWithLove: false,
   },
-  
+  componentLoader,
+
+  // mount custom dashboard
+  dashboard: {
+    component: Components.Dashboard,
+  },
+
   // Global CSS overrides
   // assets: {
   //   styles: ['/admin-custom.css'],
-  // },
-
-  // Login page customization
-  // locale: {
-  //   translations: {
-  //     labels: {
-  //       loginWelcome: 'Welcome to BoiBritto Admin Portal',
-  //       login: 'Sign In',
-  //       email: 'Email Address',
-  //       password: 'Password',
-  //     },
-  //     messages: {
-  //       loginWelcome: 'Secure admin access for content management',
-  //     },
-  //   },
   // },
 };
 
