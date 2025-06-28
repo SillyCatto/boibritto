@@ -8,7 +8,7 @@ export default function CallToAction() {
         <p className="text-amber-100 mb-8 max-w-2xl mx-auto">
           Join thousands of readers who have found their next favorite book with BoiBritto.
         </p>
-        <Link href="/signup" className="inline-block px-8 py-3 rounded-full bg-white text-amber-700 font-medium hover:bg-amber-100">
+        <Link href="/signin" className="inline-block px-8 py-3 rounded-full bg-white text-amber-700 font-medium hover:bg-amber-100">
           Get Started Today
         </Link>
       </div>
