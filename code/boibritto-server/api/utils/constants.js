@@ -12,9 +12,15 @@ const BOOK_GENRES = [
     "self-help",
     "horror",
     "drama",
+    "dystopian",
     "adventure",
     "comedy",
     "spirituality",
+    "literary",
+    "reading",
+    "lifestyle",
+    "contemporary",
+    "diversity",
     "philosophy",
     "science",
     "psychology",
@@ -24,6 +30,7 @@ const BOOK_GENRES = [
     "graphic-novel",
     "memoir",
     "education",
+    "community",
     "others"
 ];
 
