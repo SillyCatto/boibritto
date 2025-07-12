@@ -440,12 +440,14 @@ Sample response:
 
 * `owner=me` — Fetch collections belonging to the current authenticated user.
 * `owner=<uid>` — Fetch public collections of the specified user.
+* `search=<query>` — Search collections by title (case insensitive).
 
 **Behavior:**
 
-* No `owner` param → Return all **public** collections (paginated, 20 per page).
+* No `owner` param → Return all **public** collections (sorted by most recent, paginated 20 per page).
 * `owner=me` → Return **all** collections of the authenticated user (private + public).
 * `owner=<uid>` → Return **public** collections of the specified user.
+* `search=<query>` → Search collections by title (case insensitive). Returns paginated results, 20 per page if multiple matches found. Can be combined with `owner` parameter.
 
 **Response Format:**
 
@@ -640,7 +642,7 @@ Sample response:
 * You can:
 
   * Change `title`, `description`, `visibility`
-  * Add a book using `addBook`
+  * Add a book using `addBook` (collection limit: 100 books maximum)
   * Remove a book using `removeBook`
 
 **Response Format:**
@@ -698,6 +700,16 @@ Sample response:
             "__v": 1
         }
     }
+}
+```
+
+**Error Response (Book limit exceeded):**
+
+```json
+{
+  "success": false,
+  "message": "Collection cannot have more than 100 books",
+  "data": {}
 }
 ```
 
@@ -1067,12 +1079,14 @@ Sample Response:
 
 * `author=me` — Fetch blogs written by the authenticated user.
 * `author=<uid>` — Fetch **public** blogs of a specific user.
+* `search=<query>` — Search blogs by title (case insensitive).
 
 **Behavior:**
 
 * No `author` param → Return all **public** blogs (sorted by most recent, paginated 20 per page).
 * `author=me` → Return **all** blogs of the authenticated user (private + friends + public).
 * `author=<uid>` → Return only **public** blogs by that user.
+* `search=<query>` → Search blogs by title (case insensitive). Returns paginated results, 20 per page if multiple matches found. Can be combined with `author` parameter.
 
 **Response Format:**
 
