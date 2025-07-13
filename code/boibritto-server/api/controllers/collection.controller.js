@@ -6,7 +6,7 @@ import {  logError  } from '../utils/logger.js';
 
 const getCollectionsList = async (req, res) => {
   try {
-    const { owner, page = 1 } = req.query;
+    const { owner, page = 1, search, tag } = req.query;
     const PAGE_SIZE = 20;
     let filter = {};
     let isPaginated = false;
@@ -22,6 +22,12 @@ const getCollectionsList = async (req, res) => {
       // Public collections of the specified user
       filter.user = owner;
       filter.visibility = "public";
+    }
+
+    // search by title
+    if (search) {
+      filter.title = { $regex: search, $options: "i" };
+      isPaginated = true;
     }
 
     let query = Collection.find(filter).populate(
