@@ -30,6 +30,13 @@ const getCollectionsList = async (req, res) => {
       isPaginated = true;
     }
 
+    // Search by tag
+    if (tag) {
+      filter.tags = tag;
+      isPaginated = true;
+    }
+
+
     let query = Collection.find(filter).populate(
       "user",
       "displayName username avatar",
