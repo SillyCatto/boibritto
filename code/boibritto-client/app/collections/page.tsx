@@ -89,7 +89,9 @@ export default function ReadingItemsPage() {
 
  
 
-
+  // Helper function for status display
+  const getStatusBadge = (status: string) => {
+    switch (status) {
    
 
   if (loading) {
