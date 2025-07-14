@@ -115,7 +115,19 @@ export default function ReadingItemsPage() {
     );
   }
 
-
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <p className="text-red-600 mb-4">{error}</p>
+        <button 
+          onClick={() => router.push("/explore")}
+          className="px-4 py-2 bg-amber-700 text-white rounded-md"
+        >
+          Back to Explore
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -156,7 +168,20 @@ export default function ReadingItemsPage() {
                     )}
                   </div>
                   
-                  
+                  {/* Book details */}
+                  <div className="p-4 flex-1">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h2 className="text-xl font-semibold text-gray-900">
+                          {book.title || "Unknown Title"}
+                        </h2>
+                        <p className="text-gray-600 mb-2">
+                          {book.authors?.join(", ") || "Unknown Author"}
+                        </p>
+                      </div>
+                      {getStatusBadge(item.status)}
+                    </div>
+                    
                     <div className="mt-2 text-sm text-gray-500">
                       {item.status === "reading" && (
                         <p>Started: {formatDate(item.startedAt)}</p>
