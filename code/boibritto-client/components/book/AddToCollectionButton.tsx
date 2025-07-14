@@ -31,6 +31,7 @@ export default function AddToCollectionButton({
   const [selectedId, setSelectedId] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [newVisibility, setNewVisibility] = useState<"public" | "private" | "friends">("public");
   const [busy, setBusy] = useState(false);
 
   const loadCollections = async () => {
@@ -97,6 +98,7 @@ export default function AddToCollectionButton({
           data: {
             title: newTitle,
             description: newDesc,
+            visibility: newVisibility,
             books: [{ volumeId: bookId }],
           },
         },
@@ -134,6 +136,7 @@ export default function AddToCollectionButton({
     setSelectedId("");
     setNewTitle("");
     setNewDesc("");
+    setNewVisibility("public");
   };
 
   return (
@@ -145,118 +148,171 @@ export default function AddToCollectionButton({
       {/* Modal */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed inset-0 bg-amber-700/5 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={closeModal}
         >
           <div
-            className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative"
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Choose mode */}
-            {mode === "choose" && (
-              <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-6 text-center">
-                  Add to collection
-                </h3>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {mode === "choose" && "Add to collection"}
+                  {mode === "existing" && "Choose a collection"}
+                  {mode === "new" && "Create new collection"}
+                </h2>
                 <button
-                  onClick={() => setMode("existing")}
-                  className="w-full mb-4 px-4 py-3 rounded-lg bg-amber-700 text-white font-medium hover:bg-amber-800 transition"
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  Add to existing collection
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
-                <button
-                  onClick={() => setMode("new")}
-                  className="w-full px-4 py-3 rounded-lg border border-amber-700 text-amber-700 font-medium hover:bg-amber-50 transition"
-                >
-                  Create new collection
-                </button>
-              </>
-            )}
-
-            {/* Add to existing */}
-            {mode === "existing" && (
-              <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                  Choose a collection
-                </h3>
-                <select
-                  className="w-full mb-4 border border-gray-300 rounded px-3 py-2"
-                  value={selectedId}
-                  onChange={(e) => setSelectedId(e.target.value)}
-                >
-                  <option value="">-- Select --</option>
-                  {collections.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.title}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="flex gap-3">
+              </div>
+              {/* Choose mode */}
+              {mode === "choose" && (
+                <div className="space-y-4">
                   <button
-                    onClick={handleAddExisting}
-                    disabled={!selectedId || busy}
-                    className={clsx(
-                      "flex-1 px-4 py-2 rounded-lg text-white font-medium transition",
-                      selectedId && !busy
-                        ? "bg-amber-700 hover:bg-amber-800"
-                        : "bg-amber-300 cursor-not-allowed"
-                    )}
+                    onClick={() => setMode("existing")}
+                    className="w-full px-4 py-3 rounded-lg bg-amber-700 text-white font-medium hover:bg-amber-800 transition-colors"
                   >
-                    {busy ? "Adding..." : "Add"}
+                    Add to existing collection
                   </button>
                   <button
-                    onClick={() => setMode("choose")}
-                    className="flex-1 px-4 py-2 rounded-lg border text-gray-600"
+                    onClick={() => setMode("new")}
+                    className="w-full px-4 py-3 rounded-lg border border-amber-700 text-amber-700 font-medium hover:bg-amber-50 transition-colors"
                   >
-                    Back
+                    Create new collection
                   </button>
                 </div>
-              </>
-            )}
+              )}
 
-            {/* Create new */}
-            {mode === "new" && (
-              <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                  Create new collection
-                </h3>
-                <input
-                  type="text"
-                  placeholder="Collection title *"
-                  className="w-full mb-3 border border-gray-300 rounded px-3 py-2"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                />
-                <textarea
-                  placeholder="Description (optional)"
-                  className="w-full mb-4 border border-gray-300 rounded px-3 py-2 resize-none"
-                  rows={3}
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                />
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleCreateNew}
-                    disabled={!newTitle.trim() || busy}
-                    className={clsx(
-                      "flex-1 px-4 py-2 rounded-lg text-white font-medium transition",
-                      newTitle.trim() && !busy
-                        ? "bg-amber-700 hover:bg-amber-800"
-                        : "bg-amber-300 cursor-not-allowed"
-                    )}
-                  >
-                    {busy ? "Creating..." : "Add"}
-                  </button>
-                  <button
-                    onClick={() => setMode("choose")}
-                    className="flex-1 px-4 py-2 rounded-lg border text-gray-600"
-                  >
-                    Back
-                  </button>
+              {/* Add to existing */}
+              {mode === "existing" && (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="collection-select" className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Collection
+                    </label>
+                    <select
+                      id="collection-select"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      value={selectedId}
+                      onChange={(e) => setSelectedId(e.target.value)}
+                    >
+                      <option value="">-- Select a collection --</option>
+                      {collections.map((c) => (
+                        <option key={c._id} value={c._id}>
+                          {c.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setMode("choose")}
+                      className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleAddExisting}
+                      disabled={!selectedId || busy}
+                      className="flex-1 px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    >
+                      {busy ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                          Adding...
+                        </>
+                      ) : (
+                        "Add to Collection"
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </>
-            )}
+              )}
+
+              {/* Create new */}
+              {mode === "new" && (
+                <form onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }} className="space-y-4">
+                  <div>
+                    <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                      Collection Title *
+                    </label>
+                    <input
+                      type="text"
+                      id="title"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      placeholder="Enter collection title"
+                      maxLength={100}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      id="description"
+                      value={newDesc}
+                      onChange={(e) => setNewDesc(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
+                      placeholder="Describe your collection (optional)"
+                      rows={3}
+                      maxLength={500}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 mb-1">
+                      Visibility
+                    </label>
+                    <select
+                      id="visibility"
+                      value={newVisibility}
+                      onChange={(e) => setNewVisibility(e.target.value as "public" | "private" | "friends")}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    >
+                      <option value="public">Public</option>
+                      <option value="private">Private</option>
+                      <option value="friends">Friends Only</option>
+                    </select>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setMode("choose")}
+                      className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!newTitle.trim() || busy}
+                      className="flex-1 px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    >
+                      {busy ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                          Creating...
+                        </>
+                      ) : (
+                        "Create & Add Book"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}

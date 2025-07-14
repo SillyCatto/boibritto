@@ -4,13 +4,24 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { auth } from "@/lib/googleAuth";
-import clsx from "clsx";
 import { fetchBookDetails } from "@/lib/googleBooks";
 import AddToCollectionButton from "@/components/book/AddToCollectionButton";
+import AddToReadingListButton from "@/components/book/AddToReadingListButton";
 
-function Toast({ msg }: { msg: string }) {
+function Toast({ msg, type = "success" }: { msg: string; type?: "success" | "error" }) {
   if (!msg) return null;
+
+  if (type === "success") {
+    return (
+      <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 flex items-center shadow-md">
+        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+        </svg>
+        <span>{msg}</span>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed top-5 right-5 bg-amber-700 text-white px-4 py-3 rounded shadow-lg z-50 animate-fade">
       {msg}
@@ -40,6 +51,7 @@ export default function BookDetailPage() {
   const [book, setBook] = useState<any>(null);
   const [loadingBook, setLoadingBook] = useState(true);
   const [toast, setToast] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error">("success");
 
   useEffect(() => {
     (async () => {
@@ -58,11 +70,25 @@ export default function BookDetailPage() {
 
   const handleCollectionSuccess = (message: string) => {
     setToast(message);
+    setToastType("success");
     setTimeout(() => setToast(""), 3000);
   };
 
   const handleCollectionError = (message: string) => {
     setToast(message);
+    setToastType("error");
+    setTimeout(() => setToast(""), 3000);
+  };
+
+  const handleReadingListSuccess = (message: string) => {
+    setToast(message);
+    setToastType("success");
+    setTimeout(() => setToast(""), 3000);
+  };
+
+  const handleReadingListError = (message: string) => {
+    setToast(message);
+    setToastType("error");
     setTimeout(() => setToast(""), 3000);
   };
 
@@ -84,7 +110,7 @@ export default function BookDetailPage() {
 
   return (
     <>
-      <Toast msg={toast} />
+      <Toast msg={toast} type={toastType} />
       {/* ----------- page body ----------- */}
       <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white py-12 px-4">
         <div className="max-w-4xl mx-auto grid md:grid-cols-3 gap-8 bg-white rounded-2xl shadow-lg p-8">
@@ -110,6 +136,13 @@ export default function BookDetailPage() {
               bookId={id}
               onSuccess={handleCollectionSuccess}
               onError={handleCollectionError}
+            />
+
+            {/* -------- Add to Reading List button -------- */}
+            <AddToReadingListButton
+              bookId={id}
+              onSuccess={handleReadingListSuccess}
+              onError={handleReadingListError}
             />
 
             <Link

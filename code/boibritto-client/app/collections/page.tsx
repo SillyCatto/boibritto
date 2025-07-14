@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import Image from "next/image";
+import Link from "next/link";
 
 interface User {
   _id: string;
@@ -30,33 +31,42 @@ export default function CollectionsPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
-    
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        router.push("/signin");
-        return;
-      }
+      setAuthInitialized(true);
 
       try {
         setLoading(true);
-        const token = await user.getIdToken();
-        
+
+        let headers = {};
+
+        if (user) {
+          const token = await user.getIdToken();
+          headers = {
+            Authorization: `Bearer ${token}`
+          };
+        } else {
+          // If not authenticated, redirect to signin
+          router.push("/signin");
+          return;
+        }
+
+        // Fetch all public collections (no query params)
         const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections?owner=me`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`
-            },
+            headers,
             withCredentials: true
           }
         );
 
         if (response.data.success) {
           const collectionsData = response.data.data.collections || [];
-          
+
           // Fetch book details for each collection
           const collectionsWithBookDetails = await Promise.all(
             collectionsData.map(async (collection: Collection) => {
@@ -77,12 +87,12 @@ export default function CollectionsPage() {
                     return null;
                   }
                 });
-              
+
               const bookDetails = await Promise.all(bookDetailsPromises);
               return { ...collection, bookDetails: bookDetails.filter(book => book !== null) };
             })
           );
-          
+
           setCollections(collectionsWithBookDetails);
         } else {
           setError(response.data.message || "Failed to load collections");
@@ -94,7 +104,7 @@ export default function CollectionsPage() {
         setLoading(false);
       }
     });
-    
+
     return () => unsubscribe();
   }, [router]);
 
@@ -129,7 +139,7 @@ export default function CollectionsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <p className="text-red-600 mb-4">{error}</p>
-        <button 
+        <button
           onClick={() => router.push("/explore")}
           className="px-4 py-2 bg-amber-700 text-white rounded-md"
         >
@@ -143,43 +153,61 @@ export default function CollectionsPage() {
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">My Collections</h1>
-          <button 
+          <h1 className="text-3xl font-bold text-gray-900">Public Collections</h1>
+          <button
             className="px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800"
+            onClick={() => router.push("/profile")}
           >
-            Create Collection
+            My Collections
           </button>
         </div>
-        
+
         {collections.length === 0 ? (
           <div className="bg-white p-8 rounded-lg shadow text-center">
-            <p className="text-gray-500 mb-4">You haven't created any collections yet.</p>
-            <button 
+            <p className="text-gray-500 mb-4">No public collections found.</p>
+            <button
               className="inline-block px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800"
+              onClick={() => router.push("/profile")}
             >
-              Create Your First Collection
+              View My Collections
             </button>
           </div>
         ) : (
           <div className="space-y-6">
             {collections.map((collection) => (
-              <div key={collection._id} className="bg-white rounded-lg shadow overflow-hidden">
+              <Link
+                key={collection._id}
+                href={`/collections/${collection._id}`}
+                className="block bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow"
+              >
                 <div className="p-6">
                   {/* Collection Header */}
                   <div className="flex justify-between items-start mb-3">
-                    <div>
+                    <div className="flex-1">
                       <h2 className="text-xl font-semibold text-gray-900">
                         {collection.title}
                       </h2>
+                      {/* Creator info */}
+                      <div className="flex items-center mt-1 text-sm text-gray-600">
+                        <Image
+                          src={collection.user.avatar}
+                          alt={collection.user.displayName}
+                          width={20}
+                          height={20}
+                          className="rounded-full mr-2"
+                          unoptimized
+                        />
+                        <span>by {collection.user.displayName} (@{collection.user.username})</span>
+                      </div>
                     </div>
                     {getVisibilityBadge(collection.visibility)}
                   </div>
-                  
+
                   {/* Collection Description */}
                   <p className="text-gray-600 mb-4">
                     {collection.description || "No description"}
                   </p>
-                  
+
                   {/* Book Previews - New Section */}
                   <div className="mt-4 mb-4">
                     {collection.bookDetails && collection.bookDetails.length > 0 ? (
@@ -209,7 +237,7 @@ export default function CollectionsPage() {
                               </p>
                             </div>
                           ))}
-                          
+
                           {/* More books indicator */}
                           {collection.books.length > 5 && (
                             <div className="flex-shrink-0 w-20">
@@ -232,18 +260,18 @@ export default function CollectionsPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Collection Metadata */}
                   <div className="flex items-center justify-between text-sm text-gray-500 mt-4 pt-4 border-t border-gray-100">
                     <div>
                       <span>Created on {formatDate(collection.createdAt)}</span>
                     </div>
-                    
+
                     <div>
                       {collection.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {collection.tags.map((tag, index) => (
-                            <span 
+                            <span
                               key={index}
                               className="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded"
                             >
@@ -255,7 +283,7 @@ export default function CollectionsPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

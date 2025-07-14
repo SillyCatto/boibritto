@@ -122,7 +122,11 @@ export default function UserDashboard() {
                 const bookDetails = await fetchBookDetails(item.volumeId);
                 return {
                   ...item,
-                  bookDetails,
+                  bookDetails: {
+                    title: bookDetails.title,
+                    authors: bookDetails.authors || [],
+                    thumbnail: bookDetails.imageLinks?.thumbnail || bookDetails.imageLinks?.smallThumbnail || "",
+                  },
                 };
               })
             );
@@ -251,24 +255,39 @@ export default function UserDashboard() {
           {activeTab === "My Collections" && (
             <div className="space-y-4">
               {(collections || []).length > 0 ? (
-                collections.map((collection) => (
-                  <Link
-                      key={collection._id}
-                      href={`/collections/${collection._id}`}
-                      className="block border p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition"
-                      >
-                  <h3 className="font-semibold text-amber-700">
-                    {collection.title}
-                  </h3>
-                  <p className="text-gray-700 text-sm line-clamp-2">
-                    {collection.description}
-                  </p>
-                  <div className="mt-2 text-xs text-gray-500">
-                    {collection.visibility} • {collection.books?.length || 0} book
-                    {collection.books?.length !== 1 ? "s" : ""}
+                <>
+                  {collections.map((collection) => (
+                    <Link
+                        key={collection._id}
+                        href={`/collections/${collection._id}`}
+                        className="block border p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition"
+                        >
+                    <h3 className="font-semibold text-amber-700">
+                      {collection.title}
+                    </h3>
+                    <p className="text-gray-700 text-sm line-clamp-2">
+                      {collection.description}
+                    </p>
+                    <div className="mt-2 text-xs text-gray-500">
+                      {collection.visibility} • {collection.books?.length || 0} book
+                      {collection.books?.length !== 1 ? "s" : ""}
+                    </div>
+                    </Link>
+                  ))}
+
+                  {/* See More button for Collections */}
+                  <div className="flex justify-center mt-6">
+                    <Link
+                      href="/my-collections"
+                      className="px-4 py-2 text-amber-700 border border-amber-200 rounded-md hover:bg-amber-50 flex items-center gap-1 transition-colors"
+                    >
+                      See All Collections
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                      </svg>
+                    </Link>
                   </div>
-                  </Link>
-                ))
+                </>
               ) : (
                 <p className="text-gray-500 text-center py-4">
                   You have no collections yet
@@ -287,51 +306,62 @@ export default function UserDashboard() {
                   </span>
                 </div>
               ) : (readingList || []).length > 0 ? (
-                readingList.map((item) => (
-                  <div
-                    key={item._id}
-                    className="border p-4 rounded-xl bg-amber-50 flex items-center gap-4"
-                  >
-                    {item.bookDetails?.thumbnail && (
-                      <div className="flex-shrink-0">
-                        <Image
-                          src={item.bookDetails.thumbnail}
-                          alt={item.bookDetails.title || "Book cover"}
-                          width={60}
-                          height={80}
-                          className="rounded-md object-cover"
-                          unoptimized={true}
-                          onError={(e) => {
-                            console.log(
-                              "Image failed to load:",
-                              item.bookDetails?.thumbnail
-                            );
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
-                        />
+                <>
+                  {readingList.map((item) => (
+                    <div
+                      key={item._id}
+                      className="border p-4 rounded-xl bg-amber-50 flex items-center gap-4"
+                    >
+                      <div className="flex-shrink-0 w-15 h-20 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                        {item.bookDetails?.thumbnail ? (
+                          <Image
+                            src={item.bookDetails.thumbnail}
+                            alt={item.bookDetails.title || "Book cover"}
+                            width={60}
+                            height={80}
+                            className="rounded-md object-cover"
+                            unoptimized={true}
+                          />
+                        ) : (
+                          <span className="text-gray-400 text-xs text-center px-1">
+                            No Image
+                          </span>
+                        )}
                       </div>
-                    )}
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-amber-700 text-lg">
-                        {item.bookDetails?.title || "Unknown Title"}
-                      </h4>
-                      <p className="text-gray-600 text-sm">
-                        by{" "}
-                        {item.bookDetails?.authors?.join(", ") ||
-                          "Unknown Author"}
-                      </p>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-medium">
-                          {item.status}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {item.visibility}
-                        </span>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-amber-700 text-lg">
+                          {item.bookDetails?.title || "Unknown Title"}
+                        </h4>
+                        <p className="text-gray-600 text-sm">
+                          by{" "}
+                          {item.bookDetails?.authors?.join(", ") ||
+                            "Unknown Author"}
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-medium">
+                            {item.status}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {item.visibility}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                  ))}
+
+                  {/* See More button for Reading Tracker */}
+                  <div className="flex justify-center mt-6">
+                    <Link
+                      href="/readingitems"
+                      className="px-4 py-2 text-amber-700 border border-amber-200 rounded-md hover:bg-amber-50 flex items-center gap-1 transition-colors"
+                    >
+                      See All Reading Items
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                      </svg>
+                    </Link>
                   </div>
-                ))
+                </>
               ) : (
                 <p className="text-gray-500 text-center py-4">
                   Your reading list is empty
