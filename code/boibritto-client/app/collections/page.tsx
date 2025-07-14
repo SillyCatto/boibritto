@@ -92,7 +92,16 @@ export default function ReadingItemsPage() {
   // Helper function for status display
   const getStatusBadge = (status: string) => {
     switch (status) {
-   
+      case "interested":
+        return <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Interested</span>;
+      case "reading":
+        return <span className="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full">Reading</span>;
+      case "completed":
+        return <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Completed</span>;
+      default:
+        return null;
+    }
+  };
 
   if (loading) {
     return (
