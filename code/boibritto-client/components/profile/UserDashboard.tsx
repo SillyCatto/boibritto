@@ -249,39 +249,54 @@ export default function UserDashboard() {
         <div>
           {activeTab === "My Collections" && (
             <div className="space-y-4">
-              {(collections || []).length > 0 ? (
-                collections.map((collection) => (
-                  <div
-                    key={collection._id}
-                    className="border p-4 rounded-xl bg-amber-50"
-                  >
-                    <h3 className="font-semibold text-amber-700">
-                      {collection.title}
-                    </h3>
-                    <p className="text-gray-700 text-sm">
-                      {collection.description}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-xs text-gray-500">
-                        {collection.visibility} •{" "}
-                        {Array.isArray(collection.books)
-                          ? collection.books.length
-                          : 0}{" "}
-                        book
-                        {(Array.isArray(collection.books)
-                          ? collection.books.length
-                          : 0) !== 1
-                          ? "s"
-                          : ""}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center py-4">
-                  You have no collections yet
-                </p>
-              )}
+      {(collections || []).length > 0 ? (
+        <>
+          {collections.map((collection) => (
+            <div
+              key={collection._id}
+              className="border p-4 rounded-xl bg-amber-50"
+            >
+              <h3 className="font-semibold text-amber-700">
+                {collection.title}
+              </h3>
+              <p className="text-gray-700 text-sm">
+                {collection.description}
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-xs text-gray-500">
+                  {collection.visibility} •{" "}
+                  {Array.isArray(collection.books)
+                    ? collection.books.length
+                    : 0}{" "}
+                  book
+                  {(Array.isArray(collection.books)
+                    ? collection.books.length
+                    : 0) !== 1
+                    ? "s"
+                    : ""}
+                </span>
+              </div>
+            </div>
+          ))}
+          
+          {/* See More button for Collections */}
+          <div className="flex justify-center mt-6">
+            <button 
+              disabled
+              className="px-4 py-2 text-amber-700 border border-amber-200 rounded-md hover:bg-amber-50 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              See All Collections
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="text-gray-500 text-center py-4">
+          You have no collections yet
+        </p>
+      )}
             </div>
           )}
 
@@ -294,57 +309,72 @@ export default function UserDashboard() {
                     Loading book details...
                   </span>
                 </div>
-              ) : (readingList || []).length > 0 ? (
-                readingList.map((item) => (
-                  <div
-                    key={item._id}
-                    className="border p-4 rounded-xl bg-amber-50 flex items-center gap-4"
-                  >
-                    {item.bookDetails?.thumbnail && (
-                      <div className="flex-shrink-0">
-                        <Image
-                          src={item.bookDetails.thumbnail}
-                          alt={item.bookDetails.title || "Book cover"}
-                          width={60}
-                          height={80}
-                          className="rounded-md object-cover"
-                          unoptimized={true}
-                          onError={(e) => {
-                            console.log(
-                              "Image failed to load:",
-                              item.bookDetails?.thumbnail
-                            );
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
-                        />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-amber-700 text-lg">
-                        {item.bookDetails?.title || "Unknown Title"}
-                      </h4>
-                      <p className="text-gray-600 text-sm">
-                        by{" "}
-                        {item.bookDetails?.authors?.join(", ") ||
-                          "Unknown Author"}
-                      </p>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-medium">
-                          {item.status}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {item.visibility}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center py-4">
-                  Your reading list is empty
-                </p>
+      ) : (readingList || []).length > 0 ? (
+        <>
+          {readingList.map((item) => (
+            <div
+              key={item._id}
+              className="border p-4 rounded-xl bg-amber-50 flex items-center gap-4"
+            >
+              {item.bookDetails?.thumbnail && (
+                <div className="flex-shrink-0">
+                  <Image
+                    src={item.bookDetails.thumbnail}
+                    alt={item.bookDetails.title || "Book cover"}
+                    width={60}
+                    height={80}
+                    className="rounded-md object-cover"
+                    unoptimized={true}
+                    onError={(e) => {
+                      console.log(
+                        "Image failed to load:",
+                        item.bookDetails?.thumbnail
+                      );
+                      (e.target as HTMLImageElement).style.display =
+                        "none";
+                    }}
+                  />
+                </div>
               )}
+              <div className="flex-1">
+                <h4 className="font-semibold text-amber-700 text-lg">
+                  {item.bookDetails?.title || "Unknown Title"}
+                </h4>
+                <p className="text-gray-600 text-sm">
+                  by{" "}
+                  {item.bookDetails?.authors?.join(", ") ||
+                    "Unknown Author"}
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-medium">
+                    {item.status}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {item.visibility}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {/* See More button for Reading Tracker */}
+          <div className="flex justify-center mt-6">
+            <button 
+              disabled
+              className="px-4 py-2 text-amber-700 border border-amber-200 rounded-md hover:bg-amber-50 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              See All Reading Items
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="text-gray-500 text-center py-4">
+          Your reading list is empty
+        </p>
+      )}
             </div>
           )}
 
