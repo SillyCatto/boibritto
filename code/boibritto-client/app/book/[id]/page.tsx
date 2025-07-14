@@ -6,8 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/lib/googleAuth";          
 import clsx from "clsx";                        
+import { fetchBookDetails } from "@/lib/googleBooks";
 
-/* ------------------- tiny toast  ------------------- */
 function Toast({ msg }: { msg: string }) {
   if (!msg) return null;
   return (
@@ -17,12 +17,11 @@ function Toast({ msg }: { msg: string }) {
   );
 }
 
-/* ---------------- helper to render description ---- */
 function renderDescription(desc?: string) {
   if (!desc) return <span>No description available.</span>;
 
   const paragraphs = desc
-    .replace(/<br\s*\/?>/gi, "\n") 
+    .replace(/<br\s*\/?\>/gi, "\n") 
     .split(/<\/?p>/gi)             
     .map((s) => s.trim())
     .filter(Boolean);
@@ -34,42 +33,39 @@ function renderDescription(desc?: string) {
   ));
 }
 
-
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
-  /* book data */
   const [book, setBook] = useState<any>(null);
   const [loadingBook, setLoadingBook] = useState(true);
 
-  /* modal control */
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"choose" | "existing" | "new">("choose");
 
-  /* collections state */
   const [collections, setCollections] = useState<{ _id: string; title: string }[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
 
-  /* misc UI */
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
 
-  /* ---------------- fetch book ---------------- */
   useEffect(() => {
     (async () => {
       if (!id) return;
       setLoadingBook(true);
-      const res = await fetch(`https://www.googleapis.com/books/v1/volumes/${id}`);
-      const data = await res.json();
-      setBook(data);
-      setLoadingBook(false);
+      try {
+        const data = await fetchBookDetails(id);
+        setBook(data);
+      } catch (e) {
+        console.error("Failed to load book", e);
+      } finally {
+        setLoadingBook(false);
+      }
     })();
   }, [id]);
 
-  /* ---------------- fetch my collections when modal opens ---------------- */
   async function loadCollections() {
     try {
       const token = await auth.currentUser?.getIdToken();
@@ -85,7 +81,6 @@ export default function BookDetailPage() {
     }
   }
 
-  /* ---------------- add to existing ---------------- */
   async function handleAddExisting() {
     if (!selectedId) return;
     setBusy(true);
@@ -106,12 +101,14 @@ export default function BookDetailPage() {
       } else {
         setToast(json.message || "Failed to add");
       }
+    } catch (e) {
+      console.error(e);
+      setToast("Error adding to collection");
     } finally {
       setBusy(false);
     }
   }
 
-  /* ---------------- create new + add ---------------- */
   async function handleCreateNew() {
     if (!newTitle.trim()) return;
     setBusy(true);
@@ -138,26 +135,27 @@ export default function BookDetailPage() {
       } else {
         setToast(json.message || "Failed to create collection");
       }
+    } catch (e) {
+      console.error(e);
+      setToast("Error creating collection");
     } finally {
       setBusy(false);
     }
   }
 
-  /* helpers */
   function openModal() {
     setMode("choose");
     setOpen(true);
     loadCollections();
   }
+
   function closeModal() {
     setOpen(false);
-    // soft reset
     setSelectedId("");
     setNewTitle("");
     setNewDesc("");
   }
 
-  /* ---------------- render ---------------- */
   if (loadingBook)
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -172,7 +170,7 @@ export default function BookDetailPage() {
       </div>
     );
 
-  const info = book.volumeInfo || {};
+  const info = book;
 
   return (
     <>
@@ -197,7 +195,7 @@ export default function BookDetailPage() {
               )}
             </div>
 
-            {/* -------- Add to Collection button -------- */}
+            {/* -------- Add to Collection button -------- */}
             <button
               onClick={openModal}
               className="w-full mt-4 px-6 py-3 rounded-lg bg-amber-700 text-white font-semibold shadow hover:bg-amber-800 transition"
@@ -374,3 +372,6 @@ export default function BookDetailPage() {
     </>
   );
 }
+
+
+

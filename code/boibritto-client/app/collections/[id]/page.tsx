@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { auth } from "@/lib/googleAuth";
+import { fetchBookDetails } from "@/lib/googleBooks";
+import axios from "axios";
 import Image from "next/image";
 
 interface BookInfo {
@@ -33,10 +35,10 @@ export default function CollectionPage() {
     const fetchCollection = async () => {
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await fetch(`/api/collections/${id}`, {
+        const res = await axios.get(`/api/collections/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const json = await res.json();
+        const json = res.data;
         if (json.success) {
           setCollection(json.data.collection);
           setTitle(json.data.collection.title);
@@ -55,11 +57,7 @@ export default function CollectionPage() {
     const loadBooks = async () => {
       if (!collection) return;
       const details = await Promise.all(
-        collection.books.map(async (b) => {
-          const res = await fetch(`https://www.googleapis.com/books/v1/volumes/${b.volumeId}`);
-          const data = await res.json();
-          return { ...data.volumeInfo, volumeId: b.volumeId };
-        })
+        collection.books.map((b) => fetchBookDetails(b.volumeId))
       );
       setBookDetails(details);
     };
@@ -67,22 +65,25 @@ export default function CollectionPage() {
     loadBooks();
   }, [collection]);
 
+
   const handleDeleteBook = async (volumeId: string) => {
     const confirm = window.confirm(`Remove this book from collection: "${collection?.title}"?`);
     if (!confirm || !collection) return;
 
     try {
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`/api/collections/${collection._id}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ data: { removeBook: volumeId } }),
-      });
+      const res = await axios.patch(
+        `/api/collections/${collection._id}`,
+        { data: { removeBook: volumeId } },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      const json = await res.json();
+      const json = res.data;
       if (json.success) setCollection(json.data.collection);
     } catch (err) {
       console.error("Failed to remove book:", err);
@@ -95,8 +96,7 @@ export default function CollectionPage() {
 
     try {
       const token = await auth.currentUser?.getIdToken();
-      await fetch(`/api/collections/${collection._id}`, {
-        method: "DELETE",
+      await axios.delete(`/api/collections/${collection._id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -111,15 +111,17 @@ export default function CollectionPage() {
   const handleUpdateCollection = async () => {
     try {
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`/api/collections/${collection?._id}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ data: { title, description } }),
-      });
-      const json = await res.json();
+      const res = await axios.patch(
+        `/api/collections/${collection?._id}`,
+        { data: { title, description } },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const json = res.data;
       if (json.success) {
         setCollection(json.data.collection);
         setEditing(false);
