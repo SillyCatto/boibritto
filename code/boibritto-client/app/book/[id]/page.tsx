@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { auth } from "@/lib/googleAuth";          
-import clsx from "clsx";                        
+import { auth } from "@/lib/googleAuth";
+import clsx from "clsx";
 import { fetchBookDetails } from "@/lib/googleBooks";
 
 function Toast({ msg }: { msg: string }) {
@@ -21,8 +21,8 @@ function renderDescription(desc?: string) {
   if (!desc) return <span>No description available.</span>;
 
   const paragraphs = desc
-    .replace(/<br\s*\/?\>/gi, "\n") 
-    .split(/<\/?p>/gi)             
+    .replace(/<br\s*\/?\>/gi, "\n")
+    .split(/<\/?p>/gi)
     .map((s) => s.trim())
     .filter(Boolean);
 
