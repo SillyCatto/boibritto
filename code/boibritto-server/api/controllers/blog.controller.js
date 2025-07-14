@@ -7,7 +7,7 @@ import {  GENRES  } from '../utils/constants.js';
 
 const getBlogsList = async (req, res) => {
   try {
-    const { author, page = 1 } = req.query;
+    const { author, page = 1, search } = req.query;
     const PAGE_SIZE = 20;
     let filter = {};
     let isPaginated = false;
@@ -23,6 +23,12 @@ const getBlogsList = async (req, res) => {
       // Public blogs of the specified user
       filter.user = author;
       filter.visibility = "public";
+    }
+
+    // Search by title
+    if (search) {
+      filter.title = { $regex: search, $options: "i" };
+      isPaginated = true;
     }
 
     let query = Blog.find(filter).populate(

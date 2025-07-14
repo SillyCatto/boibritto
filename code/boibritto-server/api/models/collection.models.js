@@ -21,4 +21,9 @@ const collectionSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// max book per collection <= 100
+collectionSchema.path('books').validate(function (books) {
+    return books.length <= 100;
+}, 'A collection can have at most 100 books.');
+
 export default mongoose.model("Collection", collectionSchema);
