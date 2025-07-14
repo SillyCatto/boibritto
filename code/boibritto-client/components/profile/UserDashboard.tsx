@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import axios from "axios";
@@ -251,31 +252,22 @@ export default function UserDashboard() {
             <div className="space-y-4">
               {(collections || []).length > 0 ? (
                 collections.map((collection) => (
-                  <div
-                    key={collection._id}
-                    className="border p-4 rounded-xl bg-amber-50"
-                  >
-                    <h3 className="font-semibold text-amber-700">
-                      {collection.title}
-                    </h3>
-                    <p className="text-gray-700 text-sm">
-                      {collection.description}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-xs text-gray-500">
-                        {collection.visibility} •{" "}
-                        {Array.isArray(collection.books)
-                          ? collection.books.length
-                          : 0}{" "}
-                        book
-                        {(Array.isArray(collection.books)
-                          ? collection.books.length
-                          : 0) !== 1
-                          ? "s"
-                          : ""}
-                      </span>
-                    </div>
+                  <Link
+                      key={collection._id}
+                      href={`/collections/${collection._id}`}
+                      className="block border p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition"
+                      >
+                  <h3 className="font-semibold text-amber-700">
+                    {collection.title}
+                  </h3>
+                  <p className="text-gray-700 text-sm line-clamp-2">
+                    {collection.description}
+                  </p>
+                  <div className="mt-2 text-xs text-gray-500">
+                    {collection.visibility} • {collection.books?.length || 0} book
+                    {collection.books?.length !== 1 ? "s" : ""}
                   </div>
+                  </Link>
                 ))
               ) : (
                 <p className="text-gray-500 text-center py-4">

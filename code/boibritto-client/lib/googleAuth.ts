@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 const firebaseConfig = {
@@ -13,6 +13,8 @@ const firebaseConfig = {
 // if (!getApps().length) {
 //   initializeApp(firebaseConfig);
 // }
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
 export function initFirebase() {
   if (!getApps().length) {
     initializeApp(firebaseConfig);
@@ -25,3 +27,6 @@ export async function googleSignInPopup() {
   const idToken = await result.user.getIdToken();
   return { user: result.user, idToken };
 }
+
+export const auth = getAuth(app);
+export default app;
