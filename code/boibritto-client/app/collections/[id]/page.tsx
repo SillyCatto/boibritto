@@ -35,9 +35,13 @@ export default function CollectionPage() {
     const fetchCollection = async () => {
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await axios.get(`/api/collections/${id}`, {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections/${id}`,
+        {
           headers: { Authorization: `Bearer ${token}` },
-        });
+          withCredentials: true, 
+        }
+        );
+
         const json = res.data;
         if (json.success) {
           setCollection(json.data.collection);

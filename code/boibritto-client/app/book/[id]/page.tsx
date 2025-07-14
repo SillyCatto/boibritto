@@ -71,9 +71,15 @@ export default function BookDetailPage() {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return router.push("/login");
 
-      const res = await fetch("/api/collections?owner=me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections?owner=me`,
+      {
+          headers: {
+          Authorization: `Bearer ${token}`,
+          },
+          credentials: "include", // Optional if needed
+      }
+      );
+
       const json = await res.json();
       if (json.success) setCollections(json.data.collections.slice(0, 100));
     } catch (e) {
