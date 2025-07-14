@@ -96,6 +96,20 @@ export default function CollectionsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <p className="text-red-600 mb-4">{error}</p>
+        <button 
+          onClick={() => router.push("/explore")}
+          className="px-4 py-2 bg-amber-700 text-white rounded-md"
+        >
+          Back to Explore
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
