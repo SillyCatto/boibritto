@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import Link from "next/link";
+import Image from "next/image";
 
 interface User {
   _id: string;
@@ -22,6 +22,7 @@ interface Collection {
   visibility: "public" | "private" | "friends";
   createdAt: string;
   updatedAt: string;
+  bookDetails?: any[]; // To store fetched book details
 }
 
 export default function CollectionsPage() {
@@ -54,7 +55,35 @@ export default function CollectionsPage() {
         );
 
         if (response.data.success) {
-          setCollections(response.data.data.collections || []);
+          const collectionsData = response.data.data.collections || [];
+          
+          // Fetch book details for each collection
+          const collectionsWithBookDetails = await Promise.all(
+            collectionsData.map(async (collection: Collection) => {
+              // Fetch details for up to 5 books per collection to keep it manageable
+              const bookDetailsPromises = collection.books
+                .slice(0, 5)
+                .map(async (volumeId) => {
+                  try {
+                    const bookResponse = await fetch(
+                      `https://www.googleapis.com/books/v1/volumes/${volumeId}`
+                    );
+                    if (bookResponse.ok) {
+                      return await bookResponse.json();
+                    }
+                    return null;
+                  } catch (error) {
+                    console.error(`Error fetching details for book ${volumeId}:`, error);
+                    return null;
+                  }
+                });
+              
+              const bookDetails = await Promise.all(bookDetailsPromises);
+              return { ...collection, bookDetails: bookDetails.filter(book => book !== null) };
+            })
+          );
+          
+          setCollections(collectionsWithBookDetails);
         } else {
           setError(response.data.message || "Failed to load collections");
         }
@@ -117,8 +146,6 @@ export default function CollectionsPage() {
           <h1 className="text-3xl font-bold text-gray-900">My Collections</h1>
           <button 
             className="px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800"
-            // This button would open a modal to create new collection
-            // For now it's just UI
           >
             Create Collection
           </button>
@@ -129,7 +156,6 @@ export default function CollectionsPage() {
             <p className="text-gray-500 mb-4">You haven't created any collections yet.</p>
             <button 
               className="inline-block px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800"
-              // Would open collection creation modal
             >
               Create Your First Collection
             </button>
@@ -139,6 +165,7 @@ export default function CollectionsPage() {
             {collections.map((collection) => (
               <div key={collection._id} className="bg-white rounded-lg shadow overflow-hidden">
                 <div className="p-6">
+                  {/* Collection Header */}
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h2 className="text-xl font-semibold text-gray-900">
@@ -148,14 +175,67 @@ export default function CollectionsPage() {
                     {getVisibilityBadge(collection.visibility)}
                   </div>
                   
+                  {/* Collection Description */}
                   <p className="text-gray-600 mb-4">
                     {collection.description || "No description"}
                   </p>
                   
-                  <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
+                  {/* Book Previews - New Section */}
+                  <div className="mt-4 mb-4">
+                    {collection.bookDetails && collection.bookDetails.length > 0 ? (
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-700 mb-2">Books in this collection:</h3>
+                        <div className="flex space-x-3 overflow-x-auto pb-2 -mx-1 px-1">
+                          {collection.bookDetails.map((book, index) => (
+                            <div key={index} className="flex-shrink-0 w-20">
+                              <div className="w-20 h-28 bg-gray-100 rounded shadow-sm overflow-hidden">
+                                {book?.volumeInfo?.imageLinks?.thumbnail ? (
+                                  <Image
+                                    src={book.volumeInfo.imageLinks.thumbnail}
+                                    alt={book.volumeInfo.title || "Book cover"}
+                                    width={80}
+                                    height={112}
+                                    className="h-full w-full object-cover"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center px-1">
+                                    No cover
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-700 mt-1 truncate" title={book?.volumeInfo?.title}>
+                                {book?.volumeInfo?.title || "Unknown"}
+                              </p>
+                            </div>
+                          ))}
+                          
+                          {/* More books indicator */}
+                          {collection.books.length > 5 && (
+                            <div className="flex-shrink-0 w-20">
+                              <div className="w-20 h-28 bg-amber-50 rounded shadow-sm flex items-center justify-center">
+                                <span className="text-amber-700 font-medium text-sm">
+                                  +{collection.books.length - 5} more
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : collection.books.length > 0 ? (
+                      <div className="text-sm text-gray-600">
+                        This collection has {collection.books.length} {collection.books.length === 1 ? 'book' : 'books'}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-600">
+                        This collection is empty
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Collection Metadata */}
+                  <div className="flex items-center justify-between text-sm text-gray-500 mt-4 pt-4 border-t border-gray-100">
                     <div>
-                      <span>{collection.books.length} {collection.books.length === 1 ? 'book' : 'books'}</span>
-                      <span className="mx-2">•</span>
                       <span>Created on {formatDate(collection.createdAt)}</span>
                     </div>
                     
@@ -173,15 +253,6 @@ export default function CollectionsPage() {
                         </div>
                       )}
                     </div>
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
-                    <Link
-                      href={`/collections/${collection._id}`}
-                      className="text-amber-700 hover:text-amber-800 text-sm font-medium"
-                    >
-                      View Collection
-                    </Link>
                   </div>
                 </div>
               </div>
