@@ -1,21 +1,19 @@
 import Blog from '../models/blog.models.js';
 import mongoose from 'mongoose';
-import {  logError  } from '../utils/logger.js';
-import {  sendSuccess, sendError  } from '../utils/response.js';
+import { logError } from '../utils/logger.js';
+import { sendSuccess, sendError } from '../utils/response.js';
 import HTTP from '../utils/httpStatus.js';
-import {  GENRES  } from '../utils/constants.js';
+import { GENRES } from '../utils/constants.js';
 
 const getBlogsList = async (req, res) => {
   try {
     const { author, page = 1, search } = req.query;
     const PAGE_SIZE = 20;
     let filter = {};
-    let isPaginated = false;
 
     if (!author) {
-      // All public blogs, paginated
+      // All public blogs
       filter.visibility = "public";
-      isPaginated = true;
     } else if (author === "me") {
       // All blogs of the authenticated user (private + friends + public)
       filter.user = req.user._id;
@@ -28,7 +26,6 @@ const getBlogsList = async (req, res) => {
     // Search by title
     if (search) {
       filter.title = { $regex: search, $options: "i" };
-      isPaginated = true;
     }
 
     let query = Blog.find(filter).populate(
@@ -36,9 +33,8 @@ const getBlogsList = async (req, res) => {
       "displayName username avatar",
     );
 
-    if (isPaginated) {
-      query = query.skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE);
-    }
+    // Always apply pagination
+    query = query.skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE);
 
     const blogs = await query.sort({ createdAt: -1 });
 
