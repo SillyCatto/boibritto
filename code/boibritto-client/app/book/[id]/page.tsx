@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { auth } from "@/lib/googleAuth";
+import clsx from "clsx";
 import { fetchBookDetails } from "@/lib/googleBooks";
 import AddToCollectionButton from "@/components/book/AddToCollectionButton";
 
