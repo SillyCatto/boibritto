@@ -80,6 +80,14 @@ export default function BookDetailPage() {
           >
             Add to Collection List
           </button>
+                    {/* Add to Collection Button (disabled for now) */}
+          <button
+            disabled
+            className="w-full mt-4 px-6 py-3 rounded-lg bg-amber-700 text-white font-semibold shadow hover:bg-amber-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            // TODO: Implement add to collection functionality
+          >
+            Add to Reading List
+          </button>
           {/* Beautiful Back to Explore Button */}
           <Link
             href="/explore"
