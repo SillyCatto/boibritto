@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
@@ -13,6 +13,7 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const auth = getAuth();
@@ -21,6 +22,23 @@ export default function Navbar() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
 
   return (
     <nav className="bg-white shadow-sm py-4 px-6 sm:px-10 sticky top-0 z-30">
@@ -61,7 +79,7 @@ export default function Navbar() {
             </>
           )}
           {user ? (
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 className="flex items-center gap-2 focus:outline-none"
                 onClick={() => setMenuOpen((v) => !v)}
@@ -130,6 +148,7 @@ export default function Navbar() {
                   <Link
                     href="/profile"
                     className="block px-6 py-3 text-gray-700 hover:bg-amber-50"
+                    onClick={() => setMenuOpen(false)}
                   >
                     Profile
                   </Link>

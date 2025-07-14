@@ -30,15 +30,42 @@ export default function CollectionPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [bookDetails, setBookDetails] = useState<any[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [bookToDelete, setBookToDelete] = useState<{ volumeId: string; title: string } | null>(null);
+  const [showDeleteCollectionModal, setShowDeleteCollectionModal] = useState(false);
+  const [authInitialized, setAuthInitialized] = useState(false);
+
+  // Check authentication status
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setAuthInitialized(true);
+      if (!user) {
+        console.log("User not authenticated, redirecting to signin");
+        router.push("/signin");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   useEffect(() => {
     const fetchCollection = async () => {
+      // Wait for auth to initialize before making API calls
+      if (!authInitialized) return;
+
       try {
         const token = await auth.currentUser?.getIdToken();
+        if (!token) {
+          console.error("No authentication token available");
+          router.push("/signin");
+          return;
+        }
+
+        console.log("Fetching collection with token:", token.substring(0, 20) + "...");
         const res = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true, 
+          withCredentials: true,
         }
         );
 
@@ -49,13 +76,18 @@ export default function CollectionPage() {
           setDescription(json.data.collection.description);
           setLoading(false);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch collection:", err);
+        if (err.response?.status === 401) {
+          console.error("Authentication failed - redirecting to signin");
+          router.push("/signin");
+        }
+        setLoading(false);
       }
     };
 
     fetchCollection();
-  }, [id]);
+  }, [id, router, authInitialized]);
 
   useEffect(() => {
     const loadBooks = async () => {
@@ -71,58 +103,108 @@ export default function CollectionPage() {
 
 
   const handleDeleteBook = async (volumeId: string) => {
-    const confirm = window.confirm(`Remove this book from collection: "${collection?.title}"?`);
-    if (!confirm || !collection) return;
+    if (!collection) return;
 
     try {
       const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        console.error("No authentication token available");
+        router.push("/signin");
+        return;
+      }
+
       const res = await axios.patch(
-        `/api/collections/${collection._id}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections/${collection._id}`,
         { data: { removeBook: volumeId } },
         {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          withCredentials: true,
         }
       );
 
       const json = res.data;
-      if (json.success) setCollection(json.data.collection);
-    } catch (err) {
+      if (json.success) {
+        setCollection(json.data.collection);
+        setShowDeleteModal(false);
+        setBookToDelete(null);
+      }
+    } catch (err: any) {
       console.error("Failed to remove book:", err);
+      if (err.response?.status === 401) {
+        console.error("Authentication failed - redirecting to signin");
+        router.push("/signin");
+      }
     }
   };
 
+  const openDeleteModal = (volumeId: string, title: string) => {
+    setBookToDelete({ volumeId, title });
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setBookToDelete(null);
+  };
+
   const handleDeleteCollection = async () => {
-    const confirm = window.confirm(`Are you sure you want to delete this collection?`);
-    if (!confirm || !collection) return;
+    if (!collection) return;
 
     try {
       const token = await auth.currentUser?.getIdToken();
-      await axios.delete(`/api/collections/${collection._id}`, {
+      if (!token) {
+        console.error("No authentication token available");
+        router.push("/signin");
+        return;
+      }
+
+      await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections/${collection._id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        withCredentials: true,
       });
 
+      setShowDeleteCollectionModal(false);
       router.push("/profile");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete collection:", err);
+      if (err.response?.status === 401) {
+        console.error("Authentication failed - redirecting to signin");
+        router.push("/signin");
+      }
     }
+  };
+
+  const openDeleteCollectionModal = () => {
+    setShowDeleteCollectionModal(true);
+  };
+
+  const closeDeleteCollectionModal = () => {
+    setShowDeleteCollectionModal(false);
   };
 
   const handleUpdateCollection = async () => {
     try {
       const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        console.error("No authentication token available");
+        router.push("/signin");
+        return;
+      }
+
       const res = await axios.patch(
-        `/api/collections/${collection?._id}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections/${collection?._id}`,
         { data: { title, description } },
         {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          withCredentials: true,
         }
       );
       const json = res.data;
@@ -130,13 +212,25 @@ export default function CollectionPage() {
         setCollection(json.data.collection);
         setEditing(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update:", err);
+      if (err.response?.status === 401) {
+        console.error("Authentication failed - redirecting to signin");
+        router.push("/signin");
+      }
     }
   };
 
-  if (loading) return <div className="p-6 text-gray-600">Loading collection...</div>;
-  if (!collection) return <div className="p-6 text-red-600">Collection not found</div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700"></div>
+    </div>
+  );
+  if (!collection) return (
+    <div className="min-h-screen flex items-center justify-center text-red-600">
+      Collection not found
+    </div>
+  );
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-6">
@@ -182,7 +276,7 @@ export default function CollectionPage() {
                 Update
               </button>
               <button
-                onClick={handleDeleteCollection}
+                onClick={openDeleteCollectionModal}
                 className="border border-red-400 text-red-600 px-4 py-2 rounded"
               >
                 Delete
@@ -193,35 +287,122 @@ export default function CollectionPage() {
       </div>
 
       <div className="grid gap-4">
-        {bookDetails.map((book, idx) => (
-          <div key={idx} className="bg-amber-50 p-4 rounded flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {book.imageLinks?.thumbnail && (
-                <Image
-                  src={book.imageLinks.thumbnail}
-                  alt={book.title}
-                  width={60}
-                  height={90}
-                  className="rounded"
-                  unoptimized
-                />
-              )}
-              <div>
-                <h3 className="font-semibold text-amber-700">{book.title}</h3>
-                <p className="text-sm text-gray-600">
-                  {book.authors?.join(", ") || "Unknown Author"}
-                </p>
+        {collection.books.map((bookInfo, idx) => {
+          const bookDetail = bookDetails[idx];
+          if (!bookDetail) return null;
+
+          return (
+            <div key={bookInfo.volumeId} className="bg-amber-50 p-4 rounded flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {bookDetail.imageLinks?.thumbnail && (
+                  <Image
+                    src={bookDetail.imageLinks.thumbnail}
+                    alt={bookDetail.title}
+                    width={60}
+                    height={90}
+                    className="rounded"
+                    unoptimized
+                  />
+                )}
+                <div>
+                  <h3 className="font-semibold text-amber-700">{bookDetail.title}</h3>
+                  <p className="text-sm text-gray-600">
+                    {bookDetail.authors?.join(", ") || "Unknown Author"}
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={() => openDeleteModal(bookInfo.volumeId, bookDetail.title)}
+                className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                title="Remove book from collection"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={() => handleDeleteBook(book.volumeId)}
-              className="text-sm text-red-600 hover:underline"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && bookToDelete && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={closeDeleteModal}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative border border-amber-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-amber-700 mb-4 text-center">
+              Remove Book
+            </h3>
+            <p className="text-gray-700 mb-6 text-center leading-relaxed">
+              Are you sure you want to remove <span className="font-semibold text-amber-700">"{bookToDelete.title}"</span> from the collection <span className="font-semibold text-amber-700">"{collection?.title}"</span>?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleDeleteBook(bookToDelete.volumeId)}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors duration-200 shadow-sm"
+              >
+                Remove
+              </button>
+              <button
+                onClick={closeDeleteModal}
+                className="flex-1 px-4 py-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 font-medium hover:bg-amber-100 hover:border-amber-300 transition-colors duration-200 shadow-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Collection Confirmation Modal */}
+      {showDeleteCollectionModal && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={closeDeleteCollectionModal}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative border border-amber-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-red-700 mb-4 text-center">
+              Delete Collection
+            </h3>
+            <p className="text-gray-700 mb-6 text-center leading-relaxed">
+              Are you sure you want to delete the collection <span className="font-semibold text-red-700">"{collection?.title}"</span>? This action cannot be undone and will permanently remove all books from this collection.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeleteCollection}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors duration-200 shadow-sm"
+              >
+                Delete Collection
+              </button>
+              <button
+                onClick={closeDeleteCollectionModal}
+                className="flex-1 px-4 py-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 font-medium hover:bg-amber-100 hover:border-amber-300 transition-colors duration-200 shadow-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { auth } from "@/lib/googleAuth";          
-import clsx from "clsx";                        
 import { fetchBookDetails } from "@/lib/googleBooks";
+import AddToCollectionButton from "@/components/book/AddToCollectionButton";
 
 function Toast({ msg }: { msg: string }) {
   if (!msg) return null;
@@ -21,8 +20,8 @@ function renderDescription(desc?: string) {
   if (!desc) return <span>No description available.</span>;
 
   const paragraphs = desc
-    .replace(/<br\s*\/?\>/gi, "\n") 
-    .split(/<\/?p>/gi)             
+    .replace(/<br\s*\/?\>/gi, "\n")
+    .split(/<\/?p>/gi)
     .map((s) => s.trim())
     .filter(Boolean);
 
@@ -35,20 +34,9 @@ function renderDescription(desc?: string) {
 
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
 
   const [book, setBook] = useState<any>(null);
   const [loadingBook, setLoadingBook] = useState(true);
-
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"choose" | "existing" | "new">("choose");
-
-  const [collections, setCollections] = useState<{ _id: string; title: string }[]>([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [newTitle, setNewTitle] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-
-  const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
 
   useEffect(() => {
@@ -66,101 +54,15 @@ export default function BookDetailPage() {
     })();
   }, [id]);
 
-  async function loadCollections() {
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) return router.push("/login");
+  const handleCollectionSuccess = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(""), 3000);
+  };
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections?owner=me`,
-      {
-          headers: {
-          Authorization: `Bearer ${token}`,
-          },
-          credentials: "include", // Optional if needed
-      }
-      );
-
-      const json = await res.json();
-      if (json.success) setCollections(json.data.collections.slice(0, 100));
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  async function handleAddExisting() {
-    if (!selectedId) return;
-    setBusy(true);
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`/api/collections/${selectedId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ data: { addBook: id } }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setToast("Book added to collection!");
-        closeModal();
-      } else {
-        setToast(json.message || "Failed to add");
-      }
-    } catch (e) {
-      console.error(e);
-      setToast("Error adding to collection");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleCreateNew() {
-    if (!newTitle.trim()) return;
-    setBusy(true);
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      const res = await fetch("/api/collections", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          data: {
-            title: newTitle,
-            description: newDesc,
-            books: [{ volumeId: id }],
-          },
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setToast("Collection created & book added!");
-        closeModal();
-      } else {
-        setToast(json.message || "Failed to create collection");
-      }
-    } catch (e) {
-      console.error(e);
-      setToast("Error creating collection");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function openModal() {
-    setMode("choose");
-    setOpen(true);
-    loadCollections();
-  }
-
-  function closeModal() {
-    setOpen(false);
-    setSelectedId("");
-    setNewTitle("");
-    setNewDesc("");
-  }
+  const handleCollectionError = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(""), 3000);
+  };
 
   if (loadingBook)
     return (
@@ -202,12 +104,11 @@ export default function BookDetailPage() {
             </div>
 
             {/* -------- Add to Collection button -------- */}
-            <button
-              onClick={openModal}
-              className="w-full mt-4 px-6 py-3 rounded-lg bg-amber-700 text-white font-semibold shadow hover:bg-amber-800 transition"
-            >
-              Add to Collection List
-            </button>
+            <AddToCollectionButton
+              bookId={id}
+              onSuccess={handleCollectionSuccess}
+              onError={handleCollectionError}
+            />
 
             <Link
               href="/explore"
@@ -256,125 +157,6 @@ export default function BookDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* ------------ Modal Overlay ------------ */}
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
-          onClick={closeModal}
-        >
-          <div
-            className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* choose mode */}
-            {mode === "choose" && (
-              <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-6 text-center">
-                  Add to collection
-                </h3>
-                <button
-                  onClick={() => setMode("existing")}
-                  className="w-full mb-4 px-4 py-3 rounded-lg bg-amber-700 text-white font-medium hover:bg-amber-800 transition"
-                >
-                  Add to existing collection
-                </button>
-                <button
-                  onClick={() => setMode("new")}
-                  className="w-full px-4 py-3 rounded-lg border border-amber-700 text-amber-700 font-medium hover:bg-amber-50 transition"
-                >
-                  Create new collection
-                </button>
-              </>
-            )}
-
-            {/* add to existing */}
-            {mode === "existing" && (
-              <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                  Choose a collection
-                </h3>
-                <select
-                  className="w-full mb-4 border border-gray-300 rounded px-3 py-2"
-                  value={selectedId}
-                  onChange={(e) => setSelectedId(e.target.value)}
-                >
-                  <option value="">-- Select --</option>
-                  {collections.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.title}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleAddExisting}
-                    disabled={!selectedId || busy}
-                    className={clsx(
-                      "flex-1 px-4 py-2 rounded-lg text-white font-medium transition",
-                      selectedId && !busy
-                        ? "bg-amber-700 hover:bg-amber-800"
-                        : "bg-amber-300 cursor-not-allowed"
-                    )}
-                  >
-                    {busy ? "Adding..." : "Add"}
-                  </button>
-                  <button
-                    onClick={() => setMode("choose")}
-                    className="flex-1 px-4 py-2 rounded-lg border text-gray-600"
-                  >
-                    Back
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* create new */}
-            {mode === "new" && (
-              <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                  Create new collection
-                </h3>
-                <input
-                  type="text"
-                  placeholder="Collection title *"
-                  className="w-full mb-3 border border-gray-300 rounded px-3 py-2"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                />
-                <textarea
-                  placeholder="Description (optional)"
-                  className="w-full mb-4 border border-gray-300 rounded px-3 py-2 resize-none"
-                  rows={3}
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                />
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleCreateNew}
-                    disabled={!newTitle.trim() || busy}
-                    className={clsx(
-                      "flex-1 px-4 py-2 rounded-lg text-white font-medium transition",
-                      newTitle.trim() && !busy
-                        ? "bg-amber-700 hover:bg-amber-800"
-                        : "bg-amber-300 cursor-not-allowed"
-                    )}
-                  >
-                    {busy ? "Creating..." : "Add"}
-                  </button>
-                  <button
-                    onClick={() => setMode("choose")}
-                    className="flex-1 px-4 py-2 rounded-lg border text-gray-600"
-                  >
-                    Back
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </>
   );
 }
