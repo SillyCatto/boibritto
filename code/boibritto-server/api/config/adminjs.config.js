@@ -85,9 +85,9 @@ const adminConfig = {
   },
 
   // Global CSS overrides
-  // assets: {
-  //   styles: ['/admin-custom.css'],
-  // },
+  assets: {
+    styles: ['/admin-custom.css'],
+  },
 };
 
 export default adminConfig;

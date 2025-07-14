@@ -1,12 +1,6 @@
 const customTheme = {
   colors: {
     // Primary colors to match your frontend's amber theme
-    // primary100: '#FEF3C7', // amber-100
-    // primary80: '#FDE68A',  // amber-200
-    // primary60: '#F59E0B',  // amber-500
-    // primary40: '#D97706',  // amber-600
-    // primary20: '#92400E',  // amber-800
-
     primary100: "#D97706", // amber-100
     primary80: "#FDE68A", // amber-200
     primary60: "#F59E0B", // amber-500
@@ -29,9 +23,13 @@ const customTheme = {
     warning: "#F59E0B", // amber-500
     error: "#EF4444", // red-500
 
-    // Text colors
-    text: "#1F2937", // gray-800
-    textLight: "#1F2937", // gray-500
+    // Text colors - FIXED: Made input text much darker for better visibility
+    text: "#1F2937", // gray-800 - main text
+    textLight: "#374151", // gray-700 - FIXED: changed from light to dark
+
+    // Additional text colors for better form visibility
+    inputText: "#1F2937", // Dark text for inputs
+    placeholderText: "#9CA3AF", // Light gray for placeholders
   },
   // Shadows and borders
   shadows: {

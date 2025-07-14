@@ -22,3 +22,210 @@
   --table-text: #374151; /* Dark text for tables */
   --sidebar-text: #6B2908; /* Dark amber for sidebar */
 }
+
+/* Force dark text in all input fields */
+input,
+textarea,
+select,
+.adminjs-input input,
+.adminjs-textarea textarea,
+.adminjs-select select,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="url"],
+input[type="tel"],
+input[type="search"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  color: #1F2937 !important; /* Force dark text */
+  background-color: #FFFFFF !important; /* Ensure white background */
+}
+
+/* Fix placeholder text to be lighter but still visible */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: #9CA3AF !important; /* Light gray placeholder */
+  opacity: 1 !important;
+}
+
+/* Additional specificity for AdminJS form elements */
+.admin-bro input,
+.admin-bro textarea,
+.admin-bro select {
+  color: #1F2937 !important;
+  background-color: #FFFFFF !important;
+}
+
+/* Fix focus states */
+input:focus,
+textarea:focus,
+select:focus {
+  color: #1F2937 !important;
+  background-color: #FFFFFF !important;
+  border-color: #F59E0B !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1) !important;
+}
+
+/* enum dropdown fix */
+.react-select__control,
+.react-select__control--is-focused,
+.react-select__single-value,
+.react-select__input-container,
+.react-select__value-container {
+  color: #1F2937 !important;
+  background-color: #FFFFFF !important;
+}
+
+/* React-Select input */
+.react-select__input input {
+  color: #1F2937 !important;
+}
+
+/* Dropdown menu options */
+.react-select__menu,
+.react-select__menu-list {
+  background-color: #FFFFFF !important;
+}
+
+.react-select__option {
+  color: #1F2937 !important;
+  background-color: #FFFFFF !important;
+}
+
+.react-select__option--is-focused,
+.react-select__option:hover {
+  background-color: #FEF3C7 !important;
+  color: #1F2937 !important;
+}
+
+.react-select__option--is-selected {
+  background-color: #F59E0B !important;
+  color: #FFFFFF !important;
+}
+
+/* CSS-in-JS selectors for styled-components */
+[class*="css-"][class*="singleValue"] {
+  color: #1F2937 !important;
+}
+
+[class*="css-"][class*="control"] {
+  background-color: #FFFFFF !important;
+}
+
+/* AdminJS specific enum select components */
+.adminjs-design-system select,
+div[class*="Select"] {
+  color: #1F2937 !important;
+  background-color: #FFFFFF !important;
+}
+
+/* Additional dropdown selectors for stubborn AdminJS components */
+/* Try to catch any remaining dropdown elements */
+*[role="combobox"],
+*[role="listbox"],
+*[role="option"],
+.dropdown-toggle,
+.form-select,
+.custom-select,
+.select2-container,
+.select2-selection,
+.select2-selection__rendered {
+  color: #1F2937 !important;
+  background-color: #FFFFFF !important;
+}
+
+/* More specific AdminJS selectors */
+.adminjs *[class*="select"],
+.adminjs *[class*="Select"],
+.adminjs *[class*="dropdown"],
+.adminjs *[class*="Dropdown"] {
+  color: #1F2937 !important;
+  background-color: #FFFFFF !important;
+}
+
+/* Catch-all for any remaining light text elements in forms */
+.form-group *,
+.field-container *,
+.input-group * {
+  color: #1F2937 !important;
+}
+
+/* Override any remaining styled-components with light colors */
+*[class*="css-"] {
+  color: #1F2937 !important;
+}
+
+/* FIX: Dropdown text positioning - prevent cutoff of first letters */
+/* React-Select padding fixes */
+.react-select__control,
+.react-select__control--is-focused {
+  padding-left: 5px !important;
+  padding-right: 5px !important;
+}
+
+.react-select__single-value,
+.react-select__value-container {
+  padding-left: 5px !important;
+  padding-right: 5px !important;
+  margin-left: 0 !important;
+}
+
+.react-select__input-container {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* General select and dropdown padding fixes */
+select,
+.adminjs-select select,
+div[class*="Select"] {
+  padding-left: 5px !important;
+  padding-right: 5px !important;
+}
+
+/* Form control padding fixes */
+.form-control,
+.form-select,
+.custom-select {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+/* CSS-in-JS padding overrides */
+[class*="css-"][class*="control"],
+[class*="css-"][class*="singleValue"],
+[class*="css-"][class*="valueContainer"] {
+  padding-left: 5px !important;
+  margin-left: 0 !important;
+}
+
+/* Ensure dropdown options also have proper padding */
+.react-select__option {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+/* AdminJS Navbar title color*/
+.adminjs_Logo h1,
+.sc-eFqGBh h1,
+.hUNMYq h1,
+a[data-css="sidebar-logo"] h1,
+.adminjs_Logo,
+a.adminjs_Logo h1 {
+  color: #D97706 !important;
+  font-weight: 600 !important;
+}
+
+a.sc-eFqGBh.hUNMYq.adminjs_Logo h1,
+a[class*="sc-"][class*="adminjs_Logo"] h1 {
+  color: #D97706 !important;
+}
+
+[data-css="sidebar-logo"] h1,
+[data-css="sidebar-logo"] * {
+  color: #D97706 !important;
+}
