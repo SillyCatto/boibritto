@@ -4,7 +4,6 @@ import cors from "cors";
 import attachUser from "./middlewares/attachUser.js";
 import verifyUser from "./middlewares/verifyUser.js";
 
-// import verifyAdmin from "./middlewares/verifyAdmin.js";
 import setupAdmin from "./services/adminjs.service.js";
 
 import {
@@ -19,7 +18,7 @@ const app = express();
 app.use(
   cors({
     origin: [
-      //process.env.FRONTEND_URL,
+      process.env.FRONTEND_URL,
       "http://localhost:3000",
       "http://localhost:8000",
     ],
@@ -34,8 +33,6 @@ app.use(jsonErrorHandler);
 app.use(express.static('public'));
 
 // import routers
-// import legacyAdminRouter from "./routes/admin.route.js";
-
 import testRouter from "./routes/test.route.js";
 
 import authRouter from "./routes/auth.route.js";
@@ -51,9 +48,6 @@ app.use("/api/profile", verifyUser, profileRouter);
 app.use("/api/collections", verifyUser, collectionRouter);
 app.use("/api/blogs", verifyUser, blogRouter);
 app.use("/api/reading-list", verifyUser, readingListRouter);
-
-// Legacy admin route
-// app.use("/api/boibritto-internals/admin", verifyAdmin, legacyAdminRouter);
 
 // setup adminjs
 const { adminJS, router: adminRouter } = setupAdmin(app);

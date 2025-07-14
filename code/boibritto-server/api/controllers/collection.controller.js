@@ -1,20 +1,18 @@
 import Collection from '../models/collection.models.js';
 import mongoose from 'mongoose';
-import {  sendSuccess, sendError  } from '../utils/response.js';
+import { sendSuccess, sendError } from '../utils/response.js';
 import HTTP from '../utils/httpStatus.js';
-import {  logError  } from '../utils/logger.js';
+import { logError } from '../utils/logger.js';
 
 const getCollectionsList = async (req, res) => {
   try {
     const { owner, page = 1, search, tag } = req.query;
     const PAGE_SIZE = 20;
     let filter = {};
-    let isPaginated = false;
 
     if (!owner) {
-      // All public collections, paginated
+      // All public collections
       filter.visibility = "public";
-      isPaginated = true;
     } else if (owner === "me") {
       // All collections of the authenticated user (private + public)
       filter.user = req.user._id;
@@ -27,24 +25,20 @@ const getCollectionsList = async (req, res) => {
     // search by title
     if (search) {
       filter.title = { $regex: search, $options: "i" };
-      isPaginated = true;
     }
 
     // Search by tag
     if (tag) {
       filter.tags = tag;
-      isPaginated = true;
     }
-
 
     let query = Collection.find(filter).populate(
       "user",
       "displayName username avatar",
     );
 
-    if (isPaginated) {
-      query = query.skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE);
-    }
+    // Always apply pagination
+    query = query.skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE);
 
     const collections = await query.sort({ createdAt: -1 });
 
