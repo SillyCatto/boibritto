@@ -3,27 +3,30 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import Image from "next/image";
 import Link from "next/link";
 
-
-
-interface ReadingItem {
+interface User {
   _id: string;
-  user: string;
-  volumeId: string;
-  status: "interested" | "reading" | "completed";
-  startedAt?: string;
-  completedAt?: string;
+  username: string;
+  displayName: string;
+  avatar: string;
+}
+
+interface Collection {
+  _id: string;
+  user: User;
+  title: string;
+  description: string;
+  books: string[];
+  tags: string[];
   visibility: "public" | "private" | "friends";
   createdAt: string;
   updatedAt: string;
-  bookDetails?: any; // Will store fetched book details
 }
 
-export default function ReadingItemsPage() {
+export default function CollectionsPage() {
   const router = useRouter();
-  const [readingItems, setReadingItems] = useState<ReadingItem[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -41,7 +44,7 @@ export default function ReadingItemsPage() {
         const token = await user.getIdToken();
         
         const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/reading-list/me`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections?owner=me`,
           {
             headers: {
               Authorization: `Bearer ${token}`
@@ -51,33 +54,12 @@ export default function ReadingItemsPage() {
         );
 
         if (response.data.success) {
-          const items = response.data.data.readingList || [];
-          
-          // Fetch book details for each item
-          const itemsWithDetails = await Promise.all(
-            items.map(async (item: ReadingItem) => {
-              try {
-                const bookResponse = await fetch(
-                  `https://www.googleapis.com/books/v1/volumes/${item.volumeId}`
-                );
-                if (bookResponse.ok) {
-                  const bookData = await bookResponse.json();
-                  return { ...item, bookDetails: bookData };
-                }
-                return item;
-              } catch (error) {
-                console.error(`Error fetching details for book ${item.volumeId}:`, error);
-                return item;
-              }
-            })
-          );
-          
-          setReadingItems(itemsWithDetails);
+          setCollections(response.data.data.collections || []);
         } else {
-          setError(response.data.message || "Failed to load reading list");
+          setError(response.data.message || "Failed to load collections");
         }
       } catch (error: any) {
-        console.error("Error fetching reading list:", error);
+        console.error("Error fetching collections:", error);
         setError(error?.response?.data?.message || error?.message || "An error occurred");
       } finally {
         setLoading(false);
@@ -87,17 +69,20 @@ export default function ReadingItemsPage() {
     return () => unsubscribe();
   }, [router]);
 
- 
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
 
-  // Helper function for status display
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "interested":
-        return <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Interested</span>;
-      case "reading":
-        return <span className="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full">Reading</span>;
-      case "completed":
-        return <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Completed</span>;
+  // Get visibility badge
+  const getVisibilityBadge = (visibility: string) => {
+    switch (visibility) {
+      case "public":
+        return <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Public</span>;
+      case "private":
+        return <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Private</span>;
+      case "friends":
+        return <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Friends</span>;
       default:
         return null;
     }
@@ -128,80 +113,79 @@ export default function ReadingItemsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">My Reading List</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">My Collections</h1>
+          <button 
+            className="px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800"
+            // This button would open a modal to create new collection
+            // For now it's just UI
+          >
+            Create Collection
+          </button>
+        </div>
         
-        {readingItems.length === 0 ? (
+        {collections.length === 0 ? (
           <div className="bg-white p-8 rounded-lg shadow text-center">
-            <p className="text-gray-500 mb-4">You haven't added any books to your reading list yet.</p>
-            <Link 
-              href="/explore" 
+            <p className="text-gray-500 mb-4">You haven't created any collections yet.</p>
+            <button 
               className="inline-block px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800"
+              // Would open collection creation modal
             >
-              Explore Books
-            </Link>
+              Create Your First Collection
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
-            {readingItems.map((item) => {
-              const book = item.bookDetails?.volumeInfo || {};
-              return (
-                <div key={item._id} className="bg-white rounded-lg shadow overflow-hidden flex">
-                  {/* Book cover */}
-                  <div className="w-24 h-36 sm:w-32 sm:h-48 flex-shrink-0 bg-gray-100">
-                    {book?.imageLinks?.thumbnail ? (
-                      <Image
-                        src={book.imageLinks.thumbnail}
-                        alt={book.title || "Book cover"}
-                        width={128}
-                        height={192}
-                        className="w-full h-full object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        No cover
-                      </div>
-                    )}
+            {collections.map((collection) => (
+              <div key={collection._id} className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900">
+                        {collection.title}
+                      </h2>
+                    </div>
+                    {getVisibilityBadge(collection.visibility)}
                   </div>
                   
-                  {/* Book details */}
-                  <div className="p-4 flex-1">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h2 className="text-xl font-semibold text-gray-900">
-                          {book.title || "Unknown Title"}
-                        </h2>
-                        <p className="text-gray-600 mb-2">
-                          {book.authors?.join(", ") || "Unknown Author"}
-                        </p>
-                      </div>
-                      {getStatusBadge(item.status)}
+                  <p className="text-gray-600 mb-4">
+                    {collection.description || "No description"}
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
+                    <div>
+                      <span>{collection.books.length} {collection.books.length === 1 ? 'book' : 'books'}</span>
+                      <span className="mx-2">•</span>
+                      <span>Created on {formatDate(collection.createdAt)}</span>
                     </div>
                     
-                    <div className="mt-2 text-sm text-gray-500">
-                      {item.status === "reading" && (
-                        <p>Started: {formatDate(item.startedAt)}</p>
-                      )}
-                      {item.status === "completed" && (
-                        <div>
-                          <p>Started: {formatDate(item.startedAt)}</p>
-                          <p>Completed: {formatDate(item.completedAt)}</p>
+                    <div>
+                      {collection.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {collection.tags.map((tag, index) => (
+                            <span 
+                              key={index}
+                              className="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
                         </div>
                       )}
                     </div>
-                    
-                    <div className="mt-4 flex items-center gap-2">
-                      <Link
-                        href={`/book/${item.volumeId}`}
-                        className="text-amber-700 hover:text-amber-800 text-sm"
-                      >
-                        View Book
-                      </Link>
-                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                    <Link
+                      href={`/collections/${collection._id}`}
+                      className="text-amber-700 hover:text-amber-800 text-sm font-medium"
+                    >
+                      View Collection
+                    </Link>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
