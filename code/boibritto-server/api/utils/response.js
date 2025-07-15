@@ -15,4 +15,4 @@ const sendError = (res, statusCode = 500, message = "Something went wrong") => {
   return res.status(statusCode).json(errorResponse);
 };
 
-module.exports = { sendSuccess, sendError };
+export { sendSuccess, sendError };

@@ -1,6 +1,6 @@
-const express = require("express");
+import express from 'express';
 
-const { BlogController } = require("../controllers/blog.controller");
+import {  BlogController  } from '../controllers/blog.controller.js';
 
 const blogRoute = express.Router();
 
@@ -14,4 +14,4 @@ blogRoute.patch("/:id", BlogController.updateBlog);
 
 blogRoute.delete("/:id", BlogController.deleteBlog);
 
-module.exports = blogRoute;
+export default blogRoute;

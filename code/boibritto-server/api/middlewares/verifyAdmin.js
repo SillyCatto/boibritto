@@ -1,8 +1,8 @@
-const AdminModel = require("../models/admin.models");
-const { sendError } = require("../utils/response");
-const HTTP = require("../utils/httpStatus");
-const { verifyFirebaseToken } = require("../services/firebase.service");
-const { logWarning, logError } = require("../utils/logger");
+import AdminModel from "../models/admin.models.js";
+import { sendError } from "../utils/response.js";
+import HTTP from "../utils/httpStatus.js";
+import { verifyFirebaseToken } from "../services/firebase.service.js";
+import { logWarning, logError } from "../utils/logger.js";
 
 const verifyAdmin = async (req, res, next) => {
   try {
@@ -30,4 +30,4 @@ const verifyAdmin = async (req, res, next) => {
   }
 };
 
-module.exports = verifyAdmin;
+export default verifyAdmin;

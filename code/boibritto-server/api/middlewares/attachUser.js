@@ -1,7 +1,7 @@
-const { verifyFirebaseToken } = require("../services/firebase.service");
-const { sendError } = require("../utils/response");
-const HTTP = require("../utils/httpStatus");
-const { logError } = require("../utils/logger");
+import { verifyFirebaseToken } from "../services/firebase.service.js";
+import { sendError } from "../utils/response.js";
+import HTTP from "../utils/httpStatus.js";
+import { logError } from "../utils/logger.js";
 
 const attachUser = async (req, res, next) => {
   try {
@@ -14,4 +14,4 @@ const attachUser = async (req, res, next) => {
   }
 };
 
-module.exports = attachUser;
+export default attachUser;

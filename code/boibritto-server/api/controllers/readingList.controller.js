@@ -1,12 +1,10 @@
-const mongoose = require("mongoose");
-const ReadingList = require("../models/readingList.models");
-const { sendSuccess, sendError } = require("../utils/response");
-const HTTP = require("../utils/httpStatus");
-const { logError } = require("../utils/logger");
-const { checkOwner } = require("../utils/checkOwner");
-const {
-  validateReadingListDates,
-} = require("../utils/validateReadingListDates");
+import mongoose from 'mongoose';
+import ReadingList from '../models/readingList.models.js';
+import {  sendSuccess, sendError  } from '../utils/response.js';
+import HTTP from '../utils/httpStatus.js';
+import {  logError  } from '../utils/logger.js';
+import {  checkOwner  } from '../utils/checkOwner.js';
+import validateReadingListDates from '../utils/validateReadingListDates.js';
 
 const getCurrentUserReadingList = async (req, res) => {
   try {
@@ -103,7 +101,7 @@ const addToReadingList = async (req, res) => {
     return sendSuccess(
       res,
       HTTP.OK,
-      "Book added to reading list updated successfully",
+      "Book added to reading list successfully",
       {
         readingList: updatedList,
       },
@@ -229,7 +227,7 @@ const deleteReadingListItem = async (req, res) => {
   }
 };
 
-module.exports.ReadingListController = {
+export const ReadingListController = {
   getCurrentUserReadingList,
   getReadingListByID,
   addToReadingList,

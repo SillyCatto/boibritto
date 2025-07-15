@@ -1,5 +1,4 @@
-require("dotenv").config();
-
+import "dotenv/config";
 import request from "supertest";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import app from "../api/app.js";
@@ -33,7 +32,7 @@ describe("Reading List API", () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.message).toBe(
-        "Reading list for current user fetched successfully",
+        "Reading list for current user fetched successfully"
       );
       expect(Array.isArray(res.body.data.readingList)).toBe(true);
     });
@@ -81,14 +80,12 @@ describe("Reading List API", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.message).toBe(
-        "Book added to reading list updated successfully",
-      );
+      expect(res.body.message).toBe("Book added to reading list successfully");
       expect(Array.isArray(res.body.data.readingList)).toBe(true);
 
       // Find the created item
       const item = res.body.data.readingList.find(
-        (i) => i.volumeId === "test-google-book-id",
+        (i) => i.volumeId === "test-google-book-id"
       );
       expect(item).toBeDefined();
       expect(item.status).toBe("reading");
@@ -137,7 +134,7 @@ describe("Reading List API", () => {
 
       // Cleanup
       const created = firstRes.body.data?.readingList?.find(
-        (i) => i.volumeId === "duplicate-book-id",
+        (i) => i.volumeId === "duplicate-book-id"
       );
       if (created) {
         await request(app)
@@ -159,7 +156,9 @@ describe("Reading List API", () => {
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/startedAt is required/);
+      expect(res.body.message).toMatch(
+        "startedAt date is required when status is 'reading'"
+      );
     });
 
     it("should return 400 if status is 'completed' but missing completedAt", async () => {
@@ -194,7 +193,7 @@ describe("Reading List API", () => {
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toMatch(
-        /completedAt.+cannot be before.+startedAt/i,
+        "completedAt cannot be earlier than startedAt"
       );
     });
   });
@@ -220,7 +219,7 @@ describe("Reading List API", () => {
       expect(Array.isArray(res.body.data.readingList)).toBe(true);
 
       const updated = res.body.data.readingList.find(
-        (i) => i._id === createdItemId,
+        (i) => i._id === createdItemId
       );
       expect(updated.status).toBe("completed");
       expect(updated.visibility).toBe("friends");
@@ -250,7 +249,7 @@ describe("Reading List API", () => {
         });
 
       const itemId = createRes.body.data.readingList.find(
-        (i) => i.volumeId === "update-bad-date-book",
+        (i) => i.volumeId === "update-bad-date-book"
       )._id;
 
       // Try to update with invalid dates
@@ -268,7 +267,7 @@ describe("Reading List API", () => {
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toMatch(
-        /completedAt.+cannot be before.+startedAt/i,
+        "completedAt cannot be earlier than startedAt"
       );
 
       // Cleanup
