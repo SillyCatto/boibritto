@@ -69,12 +69,12 @@ export default function Hero() {
             >
               Explore Books
             </Link>
-            <Link
+            {/* <Link
               href="/signin"
               className="px-8 py-3 rounded-full border border-amber-700 text-amber-700 font-medium hover:bg-amber-50 text-center"
             >
               Sign Up Free
-            </Link>
+            </Link> */}
             {/* <Link
               href="/profile"
               className="px-8 py-3 rounded-full bg-white border border-amber-700 text-amber-700 font-medium hover:bg-amber-50 text-center"
