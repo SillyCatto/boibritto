@@ -62,10 +62,16 @@ const authenticate = async (email, password) => {
 // create AdminJS instance with imported configs
 // eslint-disable-next-line no-unused-vars
 const setupAdmin = (app) => {
-  const adminJS = new AdminJS(adminConfig);
+  const adminJS = new AdminJS({
+    ...adminConfig,
+    // Disable bundling in production for serverless compatibility
+    bundler: process.env.NODE_ENV === 'production' ? false : {
+      type: 'webpack',
+    },
+  });
 
-  // Build frontend code with custom components in development
-  if (process.env.NODE_ENV !== "production") {
+  // Only watch in development
+  if (process.env.NODE_ENV !== 'production') {
     adminJS.watch();
   }
 

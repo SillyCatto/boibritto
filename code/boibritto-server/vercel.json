@@ -20,6 +20,5 @@
       "src": "/(.*)",
       "dest": "/api/index.js"
     }
-  ],
-  "buildCommand": "npm ci --include=optional"
+  ]
 }
