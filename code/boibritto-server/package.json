@@ -6,9 +6,10 @@
   "type": "module",
   "scripts": {
     "test": "vitest run --config vitest.config.mjs",
-    "dev": "nodemon api/server.js",
-    "start": "node api/server.js",
-    "convert": "node convert-to-esm.js"
+    "build": "npm install",
+    "postinstall": "node -e \"try { import('@rollup/rollup-linux-x64-gnu'); console.log('✅ Rollup binary available'); } catch(e) { console.log('⚠️ Rollup binary not found, but will work on serverless'); }\"",
+    "start": "node api/index.js",
+    "dev": "nodemon api/server.js"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +29,8 @@
     "mongoose": "^8.15.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "styled-components": "^6.1.19"
+    "styled-components": "^6.1.19",
+    "rollup": "^4.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
@@ -38,5 +40,12 @@
     "prettier": "^3.5.3",
     "supertest": "^7.1.1",
     "vitest": "^3.1.4"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.0.0",
+    "@rollup/rollup-linux-x64-musl": "^4.0.0",
+    "@rollup/rollup-darwin-x64": "^4.0.0",
+    "@rollup/rollup-darwin-arm64": "^4.0.0",
+    "@rollup/rollup-win32-x64-msvc": "^4.0.0"
   }
 }

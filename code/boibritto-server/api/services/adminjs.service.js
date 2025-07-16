@@ -8,8 +8,12 @@ import AdminModel from "../models/admin.models.js";
 
 import adminConfig from "../config/adminjs.config.js";
 
-// register mongoose adapter
-AdminJS.registerAdapter({ Database, Resource });
+// register adapter with mongoose schema
+try {
+  AdminJS.registerAdapter({ Database, Resource });
+} catch (error) {
+  console.warn("AdminJS adapter registration warning:", error.message);
+}
 
 // firebase auth for adminjs
 // still need to accept password as parameter as its expected by adminjs
