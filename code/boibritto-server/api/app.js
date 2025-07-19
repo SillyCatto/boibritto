@@ -40,7 +40,6 @@ import readingListRouter from "./routes/readingList.route.js";
 import profileRouter from "./routes/profile.route.js";
 
 // use routes
-app.use("/api/test", testRouter);
 app.use("/api/auth", attachUser, authRouter);
 app.use("/api/profile", verifyUser, profileRouter);
 app.use("/api/collections", verifyUser, collectionRouter);
