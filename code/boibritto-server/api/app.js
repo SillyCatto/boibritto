@@ -33,8 +33,6 @@ app.use(jsonErrorHandler);
 app.use(express.static('public'));
 
 // import routers
-import testRouter from "./routes/test.route.js";
-
 import authRouter from "./routes/auth.route.js";
 import collectionRouter from "./routes/collection.route.js";
 import blogRouter from "./routes/blog.route.js";
