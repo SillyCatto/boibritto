@@ -4,8 +4,6 @@ import cors from "cors";
 import attachUser from "./middlewares/attachUser.js";
 import verifyUser from "./middlewares/verifyUser.js";
 
-import setupAdmin from "./services/adminjs.service.js";
-
 import {
   jsonErrorHandler,
   routeNotFoundHandler,
@@ -45,11 +43,6 @@ app.use("/api/profile", verifyUser, profileRouter);
 app.use("/api/collections", verifyUser, collectionRouter);
 app.use("/api/blogs", verifyUser, blogRouter);
 app.use("/api/reading-list", verifyUser, readingListRouter);
-
-// setup adminjs
-const { adminJS, router: adminRouter } = setupAdmin(app);
-// mount  adminRouter at adminJS rootPath
-app.use(adminJS.options.rootPath, adminRouter);
 
 app.use(routeNotFoundHandler);
 app.use(globalErrorHandler);
