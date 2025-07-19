@@ -17,7 +17,7 @@ const listen = () => {
 const startServer = async () => {
   try {
     await connectDB();
-    logInfo("DB connected successfully!");
+    logInfo("DB connected successfully");
     listen();
   } catch (err) {
     logError("DB connection failed", err);
