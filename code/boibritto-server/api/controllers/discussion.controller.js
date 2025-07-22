@@ -77,7 +77,7 @@ const getDiscussionById = async (req, res) => {
 
 const createDiscussion = async (req, res) => {
   try {
-    const { title, content, visibility, spoilerAlert, genres } = req.body.data || {};
+    const { title, content, spoilerAlert, genres } = req.body.data || {};
 
     // Validation
     if (!title || typeof title !== "string" || title.length > 100) {
@@ -115,8 +115,63 @@ const createDiscussion = async (req, res) => {
   }
 };
 
+
+const updateDiscussion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body.data || {};
+
+    const discussion = await Discussion.findById(id);
+    if (!discussion || discussion.visibility !== "public") {
+      return sendError(res, HTTP.NOT_FOUND, "Discussion not found or not accessible");
+    }
+
+    // Only owner can update
+    if (discussion.user.toString() !== req.user._id.toString()) {
+      return sendError(res, HTTP.FORBIDDEN, "You do not have permission to update this discussion");
+    }
+
+    // Validate and apply updates
+    if (updates.title !== undefined) {
+      if (typeof updates.title !== "string" || updates.title.length > 100) {
+        return sendError(res, HTTP.BAD_REQUEST, "Title must be a string <= 100 characters.");
+      }
+      discussion.title = updates.title;
+    }
+    if (updates.content !== undefined) {
+      if (typeof updates.content !== "string" || updates.content.length > 2000) {
+        return sendError(res, HTTP.BAD_REQUEST, "Content must be a string <= 2000 characters.");
+      }
+      discussion.content = updates.content;
+    }
+    if (updates.spoilerAlert !== undefined) {
+      if (typeof updates.spoilerAlert !== "boolean") {
+        return sendError(res, HTTP.BAD_REQUEST, "spoilerAlert must be boolean.");
+      }
+      discussion.spoilerAlert = updates.spoilerAlert;
+    }
+    if (updates.genres !== undefined) {
+      if (!Array.isArray(updates.genres)) {
+        return sendError(res, HTTP.BAD_REQUEST, "Genres must be an array.");
+      }
+      discussion.genres = updates.genres.filter(g => GENRES.includes(g));
+    }
+
+    await discussion.save();
+    await discussion.populate("user", "_id username displayName avatar");
+
+    return sendSuccess(res, HTTP.OK, "Discussion updated successfully", {
+      discussion,
+    });
+  } catch (err) {
+    logError("Failed to update discussion", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to update discussion");
+  }
+};
+
 export const DiscussionController = {
   getDiscussions,
   getDiscussionById,
   createDiscussion,
+  updateDiscussion,
 };

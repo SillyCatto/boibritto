@@ -7,6 +7,7 @@ const discussionRoute = express.Router();
 discussionRoute.get("/", verifyUser, DiscussionController.getDiscussions);
 discussionRoute.get("/:id", verifyUser, DiscussionController.getDiscussionById);
 discussionRoute.post("/", verifyUser, DiscussionController.createDiscussion);
+discussionRoute.patch("/:id", verifyUser, DiscussionController.updateDiscussion);
 
 
 export default discussionRoute;
