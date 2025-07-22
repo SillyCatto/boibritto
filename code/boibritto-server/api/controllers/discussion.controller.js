@@ -48,6 +48,34 @@ const getDiscussions = async (req, res) => {
   }
 };
 
+
+const getDiscussionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const discussion = await Discussion.findById(id)
+      .populate("user", "_id username displayName avatar");
+
+    if (!discussion) {
+      return sendError(res, HTTP.NOT_FOUND, "Discussion not found or not accessible");
+    }
+
+    // Only public discussions !!!
+    if (discussion.visibility !== "public") {
+      return sendError(res, HTTP.NOT_FOUND, "Discussion not found or not accessible");
+    }
+
+    return sendSuccess(res, HTTP.OK, "Discussion fetched successfully", {
+      discussion,
+    });
+  } catch (err) {
+    logError("Failed to fetch discussion", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to fetch discussion");
+  }
+};
+
+
 export const DiscussionController = {
   getDiscussions,
+  getDiscussionById,
 };
