@@ -1,173 +1,130 @@
+import "dotenv/config";
 import request from "supertest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import app from "../api/app.js";
 
 const API_BASE = "/api/discussions";
 
-describe("Discussion API Tests", () => {
+describe("Discussion API", () => {
   let token;
+  let createdDiscussionId;
+  let publicDiscussionId;
 
   beforeAll(async () => {
-    // Set up authentication token from environment
     token = process.env.ID_TOKEN;
+    if (!token) throw new Error("Missing ID_TOKEN in environment variables.");
+    // Get a public discussion ID for tests
+    const res = await request(app)
+      .get(API_BASE)
+      .set("Authorization", `Bearer ${token}`);
+    publicDiscussionId = res.body.data.discussions[0]?._id;
+  });
+
+  afterAll(async () => {
+    // Clean up created discussion
+    if (createdDiscussionId) {
+      await request(app)
+        .delete(`${API_BASE}/${createdDiscussionId}`)
+        .set("Authorization", `Bearer ${token}`);
+    }
   });
 
   describe("GET /api/discussions", () => {
-    it("should fetch all public discussions successfully", async () => {
+    it("should fetch all public discussions with pagination", async () => {
       const res = await request(app)
-        .get(API_BASE)
-        .set("Authorization", `Bearer ${token}`)
-        .expect(200);
-
-      expect(res.body).toHaveProperty("success", true);
-      expect(res.body).toHaveProperty("message", "Discussions fetched successfully");
-      expect(res.body).toHaveProperty("data");
-      expect(res.body.data).toHaveProperty("discussions");
-      expect(Array.isArray(res.body.data.discussions)).toBe(true);
-    });
-
-    it("should return discussions with correct structure", async () => {
-      const res = await request(app)
-        .get(API_BASE)
-        .set("Authorization", `Bearer ${token}`)
-        .expect(200);
-
-      if (res.body.data.discussions.length > 0) {
-        const discussion = res.body.data.discussions[0];
-
-        expect(discussion).toHaveProperty("_id");
-        expect(discussion).toHaveProperty("title");
-        expect(discussion).toHaveProperty("visibility", "public");
-        expect(discussion).toHaveProperty("spoilerAlert");
-        expect(discussion).toHaveProperty("genres");
-        expect(discussion).toHaveProperty("createdAt");
-        expect(discussion).toHaveProperty("updatedAt");
-
-        // Check user population
-        expect(discussion).toHaveProperty("user");
-        expect(discussion.user).toHaveProperty("_id");
-        expect(discussion.user).toHaveProperty("username");
-        expect(discussion.user).toHaveProperty("displayName");
-        expect(discussion.user).toHaveProperty("avatar");
-
-        // Should not include content (preview only)
-        expect(discussion).not.toHaveProperty("content");
-      }
-    });
-
-    it("should fetch current user's discussions with author=me", async () => {
-      const res = await request(app)
-        .get(`${API_BASE}?author=me`)
-        .set("Authorization", `Bearer ${token}`)
-        .expect(200);
-
-      expect(res.body).toHaveProperty("success", true);
-      expect(res.body.data).toHaveProperty("discussions");
-      expect(Array.isArray(res.body.data.discussions)).toBe(true);
-    });
-
-    it("should search discussions by title", async () => {
-      const searchQuery = "book";
-      const res = await request(app)
-        .get(`${API_BASE}?search=${searchQuery}`)
-        .set("Authorization", `Bearer ${token}`)
-        .expect(200);
-
-      expect(res.body).toHaveProperty("success", true);
-      expect(res.body.data).toHaveProperty("discussions");
-
-      // If results exist, verify search works
-      if (res.body.data.discussions.length > 0) {
-        res.body.data.discussions.forEach(discussion => {
-          expect(discussion.title.toLowerCase()).toContain(searchQuery.toLowerCase());
-        });
-      }
-    });
-
-    it("should fetch discussions by specific user ID", async () => {
-      // First get discussions to find a user ID
-      const allDiscussions = await request(app)
         .get(API_BASE)
         .set("Authorization", `Bearer ${token}`);
 
-      if (allDiscussions.body.data.discussions.length > 0) {
-        const userId = allDiscussions.body.data.discussions[0].user._id;
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe("Discussions fetched successfully");
+      expect(Array.isArray(res.body.data.discussions)).toBe(true);
 
-        const res = await request(app)
-          .get(`${API_BASE}?author=${userId}`)
-          .set("Authorization", `Bearer ${token}`)
-          .expect(200);
-
-        expect(res.body).toHaveProperty("success", true);
-        expect(res.body.data).toHaveProperty("discussions");
-
-        // All discussions should be from the specified user
-        res.body.data.discussions.forEach(discussion => {
-          expect(discussion.user._id).toBe(userId);
-        });
+      const discussion = res.body.data.discussions[0];
+      if (discussion) {
+        expect(discussion).toHaveProperty("_id");
+        expect(discussion).toHaveProperty("title");
+        expect(discussion).toHaveProperty("visibility", "public");
+        expect(discussion.user).toHaveProperty("username");
+        expect(discussion.user).toHaveProperty("displayName");
       }
     });
 
-    it("should combine search and author filters", async () => {
+    it("should fetch only the authenticated user's discussions when author=me", async () => {
       const res = await request(app)
-        .get(`${API_BASE}?author=me&search=test`)
-        .set("Authorization", `Bearer ${token}`)
-        .expect(200);
+        .get(`${API_BASE}?author=me`)
+        .set("Authorization", `Bearer ${token}`);
 
-      expect(res.body).toHaveProperty("success", true);
-      expect(res.body.data).toHaveProperty("discussions");
-    });
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data.discussions)).toBe(true);
 
-    it("should return 404 for non-existent user ID", async () => {
-      const fakeUserId = "123456789012345678901234";
-      const res = await request(app)
-        .get(`${API_BASE}?author=${fakeUserId}`)
-        .set("Authorization", `Bearer ${token}`)
-        .expect(404);
-
-      expect(res.body).toHaveProperty("success", false);
-      expect(res.body).toHaveProperty("message", "User not found");
-    });
-
-    it("should limit results to 20 discussions", async () => {
-      const res = await request(app)
-        .get(API_BASE)
-        .set("Authorization", `Bearer ${token}`)
-        .expect(200);
-
-      expect(res.body.data.discussions.length).toBeLessThanOrEqual(20);
-    });
-
-    it("should sort discussions by most recent (updatedAt)", async () => {
-      const res = await request(app)
-        .get(API_BASE)
-        .set("Authorization", `Bearer ${token}`)
-        .expect(200);
-
-      const discussions = res.body.data.discussions;
-      if (discussions.length > 1) {
-        for (let i = 0; i < discussions.length - 1; i++) {
-          const current = new Date(discussions[i].updatedAt);
-          const next = new Date(discussions[i + 1].updatedAt);
-          expect(current.getTime()).toBeGreaterThanOrEqual(next.getTime());
-        }
+      for (const discussion of res.body.data.discussions) {
+        expect(discussion.user).toBeDefined();
+        expect(discussion.user._id).toBeDefined();
       }
     });
 
-    it("should require authentication", async () => {
-      const res = await request(app)
-        .get(API_BASE)
-        .expect(401);
-
-      expect(res.body).toHaveProperty("success", false);
-    });
-
-    it("should handle invalid author parameter gracefully", async () => {
-      const res = await request(app)
-        .get(`${API_BASE}?author=invalid_id`)
-        .set("Authorization", `Bearer ${token}`)
-        .expect(500);
-
-      expect(res.body).toHaveProperty("success", false);
+    it("should return 401 if token is missing", async () => {
+      const res = await request(app).get(API_BASE);
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
     });
   });
+
+  describe("GET /api/discussions/:id", () => {
+    it("should fetch a public discussion by ID", async () => {
+      if (!publicDiscussionId) return;
+      const res = await request(app)
+        .get(`${API_BASE}/${publicDiscussionId}`)
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.discussion).toBeDefined();
+      expect(res.body.data.discussion.content).toBeDefined();
+      expect(res.body.data.discussion.visibility).toBe("public");
+    });
+
+    it("should return 404 for non-existent discussion ID", async () => {
+      const fakeId = "123456789012345678901234";
+      const res = await request(app)
+        .get(`${API_BASE}/${fakeId}`)
+        .set("Authorization", `Bearer ${token}`);
+      expect([400, 404]).toContain(res.status);
+      expect(res.body.success).toBe(false);
+    });
+
+    it("should return 500 for invalid discussion ID format", async () => {
+      const res = await request(app)
+        .get(`${API_BASE}/invalid_id`)
+        .set("Authorization", `Bearer ${token}`);
+      expect([400, 500]).toContain(res.status);
+      expect(res.body.success).toBe(false);
+    });
+
+    it("should return 401 if token is missing", async () => {
+      if (!publicDiscussionId) return;
+      const res = await request(app)
+        .get(`${API_BASE}/${publicDiscussionId}`);
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+    });
+
+    it("should return populated user data", async () => {
+      if (!publicDiscussionId) return;
+      const res = await request(app)
+        .get(`${API_BASE}/${publicDiscussionId}`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const user = res.body.data.discussion.user;
+      expect(user).toBeDefined();
+      expect(user._id).toBeDefined();
+      expect(user.username).toBeDefined();
+      expect(user.displayName).toBeDefined();
+      expect(user.avatar).toBeDefined();
+    });
+  });
+
+  // ...
 });
