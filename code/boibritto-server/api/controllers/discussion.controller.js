@@ -169,9 +169,33 @@ const updateDiscussion = async (req, res) => {
   }
 };
 
+
+const deleteDiscussion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const discussion = await Discussion.findById(id);
+
+    if (!discussion ) {
+      return sendError(res, HTTP.NOT_FOUND, "Discussion not found");
+    }
+
+    if (discussion.user.toString() !== req.user._id.toString()) {
+      return sendError(res, HTTP.FORBIDDEN, "You do not have permission to delete this discussion");
+    }
+
+    await discussion.deleteOne();
+
+    return sendSuccess(res, HTTP.OK, "Discussion deleted successfully", {});
+  } catch (err) {
+    logError("Failed to delete discussion", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to delete discussion");
+  }
+};
+
 export const DiscussionController = {
   getDiscussions,
   getDiscussionById,
   createDiscussion,
   updateDiscussion,
+  deleteDiscussion,
 };
