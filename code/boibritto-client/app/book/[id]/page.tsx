@@ -19,7 +19,7 @@ interface RecommendedBook {
       thumbnail?: string;
     };
   };
-  source: 'tag' | 'search' | 'personal';
+  source: 'tag' | 'search' | 'personal' | 'reading-list' | 'collection';
 }
 
 function Toast({ msg, type = "success" }: { msg: string; type?: "success" | "error" }) {
@@ -68,9 +68,14 @@ export default function BookDetailPage() {
   const [toastType, setToastType] = useState<"success" | "error">("success");
   const [recommendations, setRecommendations] = useState<RecommendedBook[]>([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
-  const [personalRecommendations, setPersonalRecommendations] = useState<RecommendedBook[]>([]);
-  const [loadingPersonalRecommendations, setLoadingPersonalRecommendations] = useState(false);
-  const [hasReadingHistory, setHasReadingHistory] = useState(false);
+  
+  // Separate recommendations state for reading list and collections
+  const [readingListRecommendations, setReadingListRecommendations] = useState<RecommendedBook[]>([]);
+  const [collectionRecommendations, setCollectionRecommendations] = useState<RecommendedBook[]>([]);
+  const [loadingReadingListRecommendations, setLoadingReadingListRecommendations] = useState(false);
+  const [loadingCollectionRecommendations, setLoadingCollectionRecommendations] = useState(false);
+  const [hasReadingList, setHasReadingList] = useState(false);
+  const [hasCollections, setHasCollections] = useState(false);
 
   // Fetch book details
   useEffect(() => {
@@ -88,7 +93,7 @@ export default function BookDetailPage() {
     })();
   }, [id]);
 
-  // Fetch recommendations
+  // Fetch general recommendations
   useEffect(() => {
     const fetchRecommendations = async () => {
       if (!book) return;
@@ -151,99 +156,125 @@ export default function BookDetailPage() {
     fetchRecommendations();
   }, [book, id]);
 
-  // Fetch personal recommendations based on user's reading list and collections
-  useEffect(() => {
-    const fetchPersonalRecommendations = async () => {
-      if (!book) return;
-      
-      setLoadingPersonalRecommendations(true);
-      try {
-        // Check if user is authenticated
-        const user = auth.currentUser;
-        if (!user) {
-          setHasReadingHistory(false);
-          setLoadingPersonalRecommendations(false);
-          return;
-        }
-        
-        const token = await user.getIdToken();
-        
-        // Fetch user's reading list and collections
-        const [readingListRes, collectionsRes] = await Promise.all([
-          axios.get(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/reading-list/me`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-              withCredentials: true,
-            }
-          ),
-          axios.get(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections?owner=me`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-              withCredentials: true,
-            }
-          )
-        ]);
-        
-        const readingList = readingListRes.data.success ? readingListRes.data.data.readingList || [] : [];
-        const collections = collectionsRes.data.success ? collectionsRes.data.data.collections || [] : [];
-        
-        // Check if user has any reading history
-        if (readingList.length === 0 && collections.every((c: { books: any[] }) => c.books.length === 0)) {
-          setHasReadingHistory(false);
-          setLoadingPersonalRecommendations(false);
-          return;
-        }
-        
-        setHasReadingHistory(true);
-        
-        // Get all book IDs from user's reading list and collections
-        const allBookIds = new Set<string>();
-        
-        readingList.forEach((item: any) => allBookIds.add(item.volumeId));
-        collections.forEach((collection: any) => {
-          collection.books.forEach((book: any) => allBookIds.add(book.volumeId));
-        });
-        
-        // Exclude the current book
-        allBookIds.delete(id as string);
-        
-        // If user has reading history, get recommendations based on a random book
-        if (allBookIds.size > 0) {
-          const randomBookId = Array.from(allBookIds)[Math.floor(Math.random() * allBookIds.size)];
-          
-          // Fetch the random book details to get its categories
-          const randomBookDetails = await fetchBookDetails(randomBookId);
-          
+
+// Fetch separate reading list and collection recommendations
+useEffect(() => {
+  const fetchPersonalRecommendations = async () => {
+    if (!book) return;
+
+    setLoadingReadingListRecommendations(true);
+    setLoadingCollectionRecommendations(true);
+
+    try {
+      // Check if user is authenticated
+      const user = auth.currentUser;
+      if (!user) {
+        setHasReadingList(false);
+        setHasCollections(false);
+        setLoadingReadingListRecommendations(false);
+        setLoadingCollectionRecommendations(false);
+        return;
+      }
+
+      const token = await user.getIdToken();
+
+      // Fetch user's reading list and collections
+      const [readingListRes, collectionsRes] = await Promise.all([
+        axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/reading-list/me`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          }
+        ),
+        axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections?owner=me`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          }
+        )
+      ]);
+
+      // --- READING LIST ---
+      const readingList: any[] = readingListRes.data.success ? readingListRes.data.data.readingList || [] : [];
+      // Only use items with a valid volumeId
+      const readingListBookIds = readingList.map(item => item.volumeId).filter(Boolean);
+      setHasReadingList(readingListBookIds.length > 0);
+
+      if (readingListBookIds.length > 0) {
+        // Exclude current book
+        const filteredReadingListIds = readingListBookIds.filter((bookId: string) => bookId !== id);
+        if (filteredReadingListIds.length > 0) {
+          const randomReadingListId = filteredReadingListIds[Math.floor(Math.random() * filteredReadingListIds.length)];
+          const randomBookDetails = await fetchBookDetails(randomReadingListId);
+
           if (randomBookDetails.categories && randomBookDetails.categories.length > 0) {
             const randomCategory = randomBookDetails.categories[Math.floor(Math.random() * randomBookDetails.categories.length)];
-            
-            const personalRecResponse = await fetch(
+            const readingListRecResponse = await fetch(
               `https://www.googleapis.com/books/v1/volumes?q=subject:${encodeURIComponent(randomCategory)}&maxResults=5`
             );
-            
-            if (personalRecResponse.ok) {
-              const data = await personalRecResponse.json();
+            if (readingListRecResponse.ok) {
+              const data = await readingListRecResponse.json();
               if (data.items) {
-                const personalRecs = data.items
+                const readingListRecs = data.items
                   .filter((item: any) => item.id !== id)
-                  .map((item: any) => ({...item, source: 'personal' as const}));
-                  
-                setPersonalRecommendations(personalRecs);
+                  .map((item: any) => ({ ...item, source: 'reading-list' as const }));
+                setReadingListRecommendations(readingListRecs);
               }
             }
           }
+        } else {
+          setReadingListRecommendations([]);
         }
-      } catch (error) {
-        console.error("Error fetching personal recommendations:", error);
-      } finally {
-        setLoadingPersonalRecommendations(false);
+      } else {
+        setReadingListRecommendations([]);
       }
-    };
-    
-    fetchPersonalRecommendations();
-  }, [book, id]);
+
+      // --- COLLECTIONS ---
+      const collections: any[] = collectionsRes.data.success ? collectionsRes.data.data.collections || [] : [];
+      const allCollectionBooks = collections.flatMap((collection: any) =>
+        (collection.books || []).map((book: any) => book.volumeId)
+      ).filter(Boolean);
+      setHasCollections(allCollectionBooks.length > 0);
+
+      const filteredCollectionIds = allCollectionBooks.filter((bookId: string) => bookId !== id);
+      if (filteredCollectionIds.length > 0) {
+        const randomCollectionId = filteredCollectionIds[Math.floor(Math.random() * filteredCollectionIds.length)];
+        const randomBookDetails = await fetchBookDetails(randomCollectionId);
+
+        if (randomBookDetails.categories && randomBookDetails.categories.length > 0) {
+          const randomCategory = randomBookDetails.categories[Math.floor(Math.random() * randomBookDetails.categories.length)];
+          const collectionRecResponse = await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=subject:${encodeURIComponent(randomCategory)}&maxResults=5`
+          );
+          if (collectionRecResponse.ok) {
+            const data = await collectionRecResponse.json();
+            if (data.items) {
+              const collectionRecs = data.items
+                .filter((item: any) => item.id !== id && !readingListRecommendations.some(b => b.id === item.id))
+                .map((item: any) => ({ ...item, source: 'collection' as const }));
+              setCollectionRecommendations(collectionRecs);
+            }
+          }
+        }
+      } else {
+        setCollectionRecommendations([]);
+      }
+
+    } catch (error) {
+      console.error("Error fetching personal recommendations:", error);
+      setReadingListRecommendations([]);
+      setCollectionRecommendations([]);
+    } finally {
+      setLoadingReadingListRecommendations(false);
+      setLoadingCollectionRecommendations(false);
+    }
+  };
+
+  fetchPersonalRecommendations();
+}, [book, id]);
+// ...existing code...
 
   const handleCollectionSuccess = (message: string) => {
     setToast(message);
@@ -375,48 +406,108 @@ export default function BookDetailPage() {
                 </div>
               </div>
               
-              {/* Personal Recommendations Section */}
+              {/* Reading List Recommendations Section */}
               <div className="mb-10">
-                <h2 className="text-2xl font-bold text-amber-700 mb-4">Books For You</h2>
+                <h2 className="text-2xl font-bold text-amber-700 mb-4">
+                  <span className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    Based on Your Reading List
+                  </span>
+                </h2>
                 
-                {loadingPersonalRecommendations ? (
-                  <div className="flex justify-center py-12">
+                {loadingReadingListRecommendations ? (
+                  <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700"></div>
                   </div>
-                ) : hasReadingHistory && personalRecommendations.length > 0 ? (
-                  <>
-                    <p className="text-gray-600 mb-6">Based on your collection and reading list</p>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                      {personalRecommendations.map((book) => (
-                        <Link href={`/book/${book.id}`} key={book.id} className="block group">
-                          <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                            <div className="aspect-[2/3] relative">
-                              {book.volumeInfo.imageLinks?.thumbnail ? (
-                                <Image
-                                  src={book.volumeInfo.imageLinks.thumbnail}
-                                  alt={book.volumeInfo.title}
-                                  fill
-                                  className="object-cover"
-                                  unoptimized
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-sm">
-                                  No cover
-                                </div>
-                              )}
-                            </div>
-                            <div className="p-3">
-                              <h3 className="font-medium text-gray-800 text-sm line-clamp-1">{book.volumeInfo.title}</h3>
-                              <p className="text-gray-500 text-xs line-clamp-1">{book.volumeInfo.authors?.join(", ") || "Unknown"}</p>
-                            </div>
+                ) : hasReadingList && readingListRecommendations.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                    {readingListRecommendations.map((book) => (
+                      <Link href={`/book/${book.id}`} key={book.id} className="block group">
+                        <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                          <div className="aspect-[2/3] relative">
+                            {book.volumeInfo.imageLinks?.thumbnail ? (
+                              <Image
+                                src={book.volumeInfo.imageLinks.thumbnail}
+                                alt={book.volumeInfo.title}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-sm">
+                                No cover
+                              </div>
+                            )}
                           </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </>
+                          <div className="p-3">
+                            <h3 className="font-medium text-gray-800 text-sm line-clamp-1">{book.volumeInfo.title}</h3>
+                            <p className="text-gray-500 text-xs line-clamp-1">{book.volumeInfo.authors?.join(", ") || "Unknown"}</p>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
                 ) : (
                   <div className="bg-gray-50 p-8 text-center rounded-lg">
-                    <p className="text-gray-500">Nothing to show! Start adding books to your collections and reading list.</p>
+                    <p className="text-gray-500">Nothing to show! Add books to your reading list for personalized recommendations.</p>
+                    <Link href="/reading-list" className="mt-4 inline-block text-amber-700 font-medium hover:underline">
+                      Go to Reading List
+                    </Link>
+                  </div>
+                )}
+              </div>
+              
+              {/* Collection Recommendations Section */}
+              <div className="mb-10">
+                <h2 className="text-2xl font-bold text-amber-700 mb-4">
+                  <span className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    Based on Your Collections
+                  </span>
+                </h2>
+                
+                {loadingCollectionRecommendations ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700"></div>
+                  </div>
+                ) : hasCollections && collectionRecommendations.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                    {collectionRecommendations.map((book) => (
+                      <Link href={`/book/${book.id}`} key={book.id} className="block group">
+                        <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                          <div className="aspect-[2/3] relative">
+                            {book.volumeInfo.imageLinks?.thumbnail ? (
+                              <Image
+                                src={book.volumeInfo.imageLinks.thumbnail}
+                                alt={book.volumeInfo.title}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-sm">
+                                No cover
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-3">
+                            <h3 className="font-medium text-gray-800 text-sm line-clamp-1">{book.volumeInfo.title}</h3>
+                            <p className="text-gray-500 text-xs line-clamp-1">{book.volumeInfo.authors?.join(", ") || "Unknown"}</p>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 p-8 text-center rounded-lg">
+                    <p className="text-gray-500">Nothing to show! Create collections and add books for personalized recommendations.</p>
+                    <Link href="/collections" className="mt-4 inline-block text-amber-700 font-medium hover:underline">
+                      Go to Collections
+                    </Link>
                   </div>
                 )}
               </div>
