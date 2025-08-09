@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const collectionSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    title: { type: String, required: true },
+    title: { type: String, required: true, maxlength: 100 },
     description: { type: String, maxlength: 200 },
     books: [
       {

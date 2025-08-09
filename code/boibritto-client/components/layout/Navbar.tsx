@@ -27,23 +27,26 @@ export default function Navbar() {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setMenuOpen(false);
       }
     };
 
     if (menuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [menuOpen]);
 
   // Function to determine if a link is active
   const isActive = (path: string) => {
-    if (path === '/' && pathname !== '/') {
+    if (path === "/" && pathname !== "/") {
       return false;
     }
     return pathname === path || pathname.startsWith(`${path}/`);
@@ -69,27 +72,31 @@ export default function Navbar() {
         <div className="hidden md:flex space-x-8 items-center">
           <Link
             href="/"
-            className={isActive('/') ? "font-medium text-amber-700 transition" : "text-gray-600 hover:text-amber-700 transition"}
+            className={
+              isActive("/")
+                ? "font-medium text-amber-700 transition"
+                : "text-gray-600 hover:text-amber-700 transition"
+            }
           >
             Home
           </Link>
           {user && (
             <>
-              <Link
-                href="/explore"
-                className={getLinkStyles('/explore')}
-              >
+              <Link href="/explore" className={getLinkStyles("/explore")}>
                 Explore
               </Link>
               <Link
                 href="/collections"
-                className={getLinkStyles('/collections')}
+                className={getLinkStyles("/collections")}
               >
                 Collections
               </Link>
+              <Link href="/blogs" className={getLinkStyles("/blogs")}>
+                Blogs
+              </Link>
               <Link
                 href="/discussions"
-                className={getLinkStyles('/discussions')}
+                className={getLinkStyles("/discussions")}
               >
                 Discussions
               </Link>
@@ -117,7 +124,13 @@ export default function Navbar() {
                     </span>
                   </div>
                 )}
-                <span className={isActive('/profile') ? "font-medium text-amber-700" : "font-medium text-gray-900"}>
+                <span
+                  className={
+                    isActive("/profile")
+                      ? "font-medium text-amber-700"
+                      : "font-medium text-gray-900"
+                  }
+                >
                   {user.displayName?.split(" ")[0] || "User"}
                 </span>
                 <svg
@@ -143,7 +156,11 @@ export default function Navbar() {
                   </div>
                   <Link
                     href="/profile"
-                    className={`block px-6 py-3 ${isActive('/profile') ? 'text-amber-700 bg-amber-50' : 'text-gray-700 hover:bg-amber-50'}`}
+                    className={`block px-6 py-3 ${
+                      isActive("/profile")
+                        ? "text-amber-700 bg-amber-50"
+                        : "text-gray-700 hover:bg-amber-50"
+                    }`}
                     onClick={() => setMenuOpen(false)}
                   >
                     Profile
@@ -166,9 +183,11 @@ export default function Navbar() {
               <div className="flex space-x-2 items-center">
                 <Link
                   href="/signin"
-                  className={`px-5 py-2 rounded-full ${isActive('/signin') 
-                    ? 'bg-amber-800 text-white' 
-                    : 'bg-amber-700 text-white hover:bg-amber-800'} font-medium transition`}
+                  className={`px-5 py-2 rounded-full ${
+                    isActive("/signin")
+                      ? "bg-amber-800 text-white"
+                      : "bg-amber-700 text-white hover:bg-amber-800"
+                  } font-medium transition`}
                 >
                   Sign In
                 </Link>
@@ -176,7 +195,7 @@ export default function Navbar() {
             </>
           )}
         </div>
-        
+
         {/* Mobile menu button - unchanged */}
         <button
           className="md:hidden"
@@ -199,33 +218,62 @@ export default function Navbar() {
           </svg>
         </button>
       </div>
-      
+
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden mt-4 pt-4 border-t border-gray-100 bg-white rounded-b-xl shadow">
           <div className="flex flex-col space-y-3 px-2 pb-3">
-            <Link href="/" className={isActive('/') ? "text-amber-700 font-medium py-2" : "text-gray-900 hover:text-amber-700 font-medium py-2"}>
+            <Link
+              href="/"
+              className={
+                isActive("/")
+                  ? "text-amber-700 font-medium py-2"
+                  : "text-gray-900 hover:text-amber-700 font-medium py-2"
+              }
+            >
               Home
             </Link>
             {user && (
               <>
                 <Link
                   href="/explore"
-                  className={isActive('/explore') ? "text-amber-700 py-2" : "text-gray-600 hover:text-amber-700 py-2"}
+                  className={
+                    isActive("/explore")
+                      ? "text-amber-700 py-2"
+                      : "text-gray-600 hover:text-amber-700 py-2"
+                  }
                 >
                   Explore
                 </Link>
                 <Link
                   href="/collections"
-                  className={isActive('/collections') ? "text-amber-700 py-2" : "text-gray-600 hover:text-amber-700 py-2"}
+                  className={
+                    isActive("/collections")
+                      ? "text-amber-700 py-2"
+                      : "text-gray-600 hover:text-amber-700 py-2"
+                  }
                 >
                   Collections
                 </Link>
                 <Link
                   href="/discussions"
-                  className={isActive('/discussions') ? "text-amber-700 py-2" : "text-gray-600 hover:text-amber-700 py-2"}
+                  className={
+                    isActive("/discussions")
+                      ? "text-amber-700 py-2"
+                      : "text-gray-600 hover:text-amber-700 py-2"
+                  }
                 >
                   Discussions
+                </Link>
+                <Link
+                  href="/blogs"
+                  className={
+                    isActive("/blogs")
+                      ? "text-amber-700 py-2"
+                      : "text-gray-600 hover:text-amber-700 py-2"
+                  }
+                >
+                  Blogs
                 </Link>
               </>
             )}
@@ -233,7 +281,11 @@ export default function Navbar() {
               <>
                 <Link
                   href="/profile"
-                  className={isActive('/profile') ? "text-amber-700 py-2" : "text-gray-700 hover:text-amber-700 py-2"}
+                  className={
+                    isActive("/profile")
+                      ? "text-amber-700 py-2"
+                      : "text-gray-700 hover:text-amber-700 py-2"
+                  }
                 >
                   Profile
                 </Link>
@@ -252,13 +304,21 @@ export default function Navbar() {
               <>
                 <Link
                   href="/signin"
-                  className={isActive('/signin') ? "text-amber-800 font-medium py-2" : "text-amber-700 hover:text-amber-800 font-medium py-2"}
+                  className={
+                    isActive("/signin")
+                      ? "text-amber-800 font-medium py-2"
+                      : "text-amber-700 hover:text-amber-800 font-medium py-2"
+                  }
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/signup"
-                  className={`${isActive('/signup') ? 'bg-amber-800' : 'bg-amber-700 hover:bg-amber-800'} text-white rounded-full px-4 py-2 font-medium text-center transition`}
+                  className={`${
+                    isActive("/signup")
+                      ? "bg-amber-800"
+                      : "bg-amber-700 hover:bg-amber-800"
+                  } text-white rounded-full px-4 py-2 font-medium text-center transition`}
                 >
                   Sign Up
                 </Link>

@@ -36,6 +36,7 @@ Ex-
 - #### [Collections](#collection-routes)
 - #### [Reading List](#reading-list-routes)
 - #### [Blogs](#blog-routes)
+- #### [Discussions](#discussion-routes)
 
 
 ---
@@ -1375,6 +1376,317 @@ Sample response:
 {
     "success": true,
     "message": "Blog deleted successfully",
+    "data": {}
+}
+```
+
+---
+
+## Discussion Routes
+
+### List Discussions
+
+**GET** `/api/discussions`
+
+**Query Parameters (optional):**
+
+* `author=me` — Fetch discussions created by the current authenticated user.
+* `author=<uid>` — Fetch **public** discussions of a specific user.
+* `search=<query>` — Search discussions by title (case insensitive).
+
+**Behavior:**
+
+* No `author` param → Return all **public** discussions (sorted by most recent, paginated 20 per page).
+* `author=me` → Return **all** discussions of the authenticated user (public only for now).
+* `author=<uid>` → Return only **public** discussions by that user.
+* `search=<query>` → Search discussions by title (case insensitive). Returns paginated results, 20 per page if multiple matches found. Can be combined with `author` parameter.
+* Returns **preview data only** (excludes discussion content to reduce response size).
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Discussions fetched successfully",
+  "data": {
+    "discussions": [ /* Array of discussion objects */ ]
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Discussions fetched successfully",
+    "data": {
+        "discussions": [
+            {
+                "_id": "6847133861841477d982ac22",
+                "user": {
+                    "_id": "6843292c5cc2e9ee0b9bc0a9",
+                    "username": "bookworm",
+                    "displayName": "BookWorm",
+                    "avatar": "https://lh3.googleusercontent.com/..."
+                },
+                "title": "What makes a book truly unforgettable?",
+                "visibility": "public",
+                "spoilerAlert": false,
+                "genres": ["fiction", "literary-fiction"],
+                "createdAt": "2025-06-09T17:00:40.091Z",
+                "updatedAt": "2025-06-09T17:00:40.091Z",
+                "__v": 0
+            },
+            {
+                "_id": "68470ca92df9925ccd743b78",
+                "user": {
+                    "_id": "6843292c5cc2e9ee0b9bc0a9",
+                    "username": "scifireader",
+                    "displayName": "SciFi Reader",
+                    "avatar": "https://lh3.googleusercontent.com/..."
+                },
+                "title": "Best sci-fi books of 2024?",
+                "visibility": "public",
+                "spoilerAlert": false,
+                "genres": ["sci-fi"],
+                "createdAt": "2025-06-09T16:32:41.983Z",
+                "updatedAt": "2025-06-09T16:32:41.983Z",
+                "__v": 0
+            }
+        ]
+    }
+}
+```
+
+---
+
+### Get a Discussion by ID
+
+**GET** `/api/discussions/:id`
+
+**Behavior:**
+
+* Return the discussion along with its content and other details if it is **public**.
+* For now, only public discussions are accessible.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Discussion fetched successfully",
+  "data": {
+    "discussion": { /* Discussion details */ }
+  }
+}
+```
+
+<br>
+
+Sample response (success):
+
+```json
+{
+    "success": true,
+    "message": "Discussion fetched successfully",
+    "data": {
+        "discussion": {
+            "_id": "6847144261841477d982ac2f",
+            "user": {
+                "_id": "6843292c5cc2e9ee0b9bc0a9",
+                "username": "bookworm",
+                "displayName": "BookWorm",
+                "avatar": "https://lh3.googleusercontent.com/..."
+            },
+            "title": "What makes a book truly unforgettable?",
+            "content": "I've been thinking about what separates books that stay with us forever from those we quickly forget. Is it the characters? The plot twists? The emotional connection? I'd love to hear your thoughts on books that have left a lasting impact on you.",
+            "visibility": "public",
+            "spoilerAlert": false,
+            "genres": ["fiction", "literary-fiction"],
+            "createdAt": "2025-06-09T17:05:06.094Z",
+            "updatedAt": "2025-06-09T17:05:06.094Z",
+            "__v": 0
+        }
+    }
+}
+```
+
+<br>
+
+Sample response (no access):
+```json
+{
+    "success": false,
+    "message": "Discussion not found or not accessible"
+}
+```
+
+---
+
+### Create a Discussion
+
+**POST** `/api/discussions`
+
+**Input:** `req.body.data`
+
+```json
+{
+  "title": "Your thoughts on modern fantasy?", // required, max 100 characters
+  "content": "I've been reading a lot of modern fantasy lately...", // required, max 2000 characters
+  "visibility": "public", // defaults to "public"
+  "spoilerAlert": false, // required
+  "genres": ["fantasy", "fiction"] // optional
+}
+```
+
+**Behavior:**
+
+* Authenticated user creates a discussion.
+* `visibility` is currently set to `public` only.
+* Discussion `content` is markdown string with a maximum of 2000 characters.
+* `title` has a maximum of 100 characters.
+* `genres` must be chosen from predefined GENRES.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Discussion created successfully",
+  "data": {
+    "discussion": { /* Newly created discussion object */ }
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Discussion created successfully",
+    "data": {
+        "discussion": {
+            "user": {
+                "_id": "6843292c5cc2e9ee0b9bc0a9",
+                "username": "bookworm",
+                "displayName": "BookWorm",
+                "avatar": "https://lh3.googleusercontent.com/..."
+            },
+            "title": "Your thoughts on modern fantasy?",
+            "content": "I've been reading a lot of modern fantasy lately and I'm curious about what others think. Are we in a golden age of fantasy literature?",
+            "visibility": "public",
+            "spoilerAlert": false,
+            "genres": ["fantasy", "fiction"],
+            "_id": "6847144261841477d982ac2f",
+            "createdAt": "2025-06-09T17:05:06.094Z",
+            "updatedAt": "2025-06-09T17:05:06.094Z",
+            "__v": 0
+        }
+    }
+}
+```
+
+---
+
+### Update a Discussion
+
+**PATCH** `/api/discussions/:id`
+
+**Input:** `req.body.data`
+Any one or multiple of the following fields can be updated:
+
+```json
+{
+  "title": "Updated Discussion Title",
+  "content": "Updated discussion content...",
+  "spoilerAlert": true,
+  "genres": ["mystery", "thriller"]
+}
+```
+
+**Behavior:**
+
+* Only the **owner** can update their discussion.
+* Fields like `title`, `content`, `spoilerAlert`, and `genres` can be updated.
+* `visibility` is currently not updateable (always public).
+* `title` has a maximum of 100 characters.
+* `content` has a maximum of 2000 characters.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Discussion updated successfully",
+  "data": {
+    "discussion": { /* Updated discussion */ }
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Discussion updated successfully",
+    "data": {
+        "discussion": {
+            "_id": "6847133861841477d982ac22",
+            "user": {
+                "_id": "6843292c5cc2e9ee0b9bc0a9",
+                "username": "bookworm",
+                "displayName": "BookWorm",
+                "avatar": "https://lh3.googleusercontent.com/..."
+            },
+            "title": "Updated: What makes a book truly unforgettable?",
+            "content": "I've been thinking about what separates books that stay with us forever from those we quickly forget. Updated with more thoughts after our recent book club discussion!",
+            "visibility": "public",
+            "spoilerAlert": true,
+            "genres": ["fiction", "literary-fiction"],
+            "createdAt": "2025-06-09T17:00:40.091Z",
+            "updatedAt": "2025-06-09T17:21:56.138Z",
+            "__v": 0
+        }
+    }
+}
+```
+
+---
+
+### Delete a Discussion
+
+**DELETE** `/api/discussions/:id`
+
+**Behavior:**
+
+* Only the **owner** can delete their discussion.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Discussion deleted successfully"
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Discussion deleted successfully",
     "data": {}
 }
 ```

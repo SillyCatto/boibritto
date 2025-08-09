@@ -8,9 +8,9 @@ export default async (req, res) => {
     try {
       await connectDB();
       global.dbConnected = true;
-      console.log("✅ DB connected successfully!");
+      console.log("DB connected successfully");
     } catch (err) {
-      console.error("❌ DB connection failed: ", err);
+      console.error("DB connection failed: ", err);
       return res.status(500).json({ error: "Database connection failed" });
     }
   }
