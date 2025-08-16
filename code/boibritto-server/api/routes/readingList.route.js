@@ -7,6 +7,8 @@ const readingListRoute = express.Router();
 
 readingListRoute.get("/me", ReadingListController.getCurrentUserReadingList);
 
+readingListRoute.get("/recommendations", ReadingListController.getRecommendations);
+
 readingListRoute.get("/:userID", ReadingListController.getReadingListByID);
 
 readingListRoute.post("/", ReadingListController.addToReadingList);
