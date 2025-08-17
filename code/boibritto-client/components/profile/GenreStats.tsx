@@ -1,4 +1,3 @@
-// filepath: components/profile/GenreStats.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
