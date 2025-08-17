@@ -135,52 +135,133 @@ export default function GenreStats() {
     );
   }
 
-  if (!stats || !stats.topGenres || stats.topGenres.length === 0) {
+  if (error) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h3 className="text-lg font-semibold mb-4 text-amber-800">Your Reading Preferences</h3>
-        <div className="text-center py-8">
-          <div className="text-4xl text-gray-400 mb-2">📚</div>
-          <p className="text-gray-500 mb-1">No genre data yet</p>
-          <p className="text-sm text-gray-400">
-            Add books to your reading list to see your favorite genres!
-          </p>
+      <div className="bg-white border rounded-lg p-4">
+        <h3 className="font-medium text-amber-700 mb-2">Reading Preferences</h3>
+        <div className="text-center py-6">
+          <p className="text-gray-500 text-sm mb-1">Failed to load preferences</p>
+          <p className="text-xs text-gray-400">{error}</p>
         </div>
       </div>
     );
   }
 
+  if (!stats || !stats.topGenres || stats.topGenres.length === 0) {
+    return (
+      <div className="bg-white border rounded-lg p-4">
+        <h3 className="font-medium text-amber-700 mb-2">Reading Preferences</h3>
+        <div className="text-center py-6">
+          <div className="text-3xl mb-2">📚</div>
+          <p className="text-gray-500 text-sm mb-1">No reading data yet</p>
+          <p className="text-xs text-gray-400">Add books to see your preferences</p>
+        </div>
+      </div>
+    );
+  }
+
+  const tagStats = getTagStats();
+
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-amber-800">Your Reading Preferences</h3>
-      
-      <div className="space-y-3 mb-4">
-        {stats.topGenres.map((item, index) => (
-          <div key={item.genre} className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <span className="text-sm font-medium text-amber-600 w-4">#{index + 1}</span>
-              <span className="font-medium capitalize text-gray-700">{item.genre}</span>
+    <>
+      <div className="bg-white border rounded-lg">
+        {/* Header */}
+        <div className="p-4 border-b bg-amber-50">
+          <h3 className="font-medium text-amber-700">Reading Preferences</h3>
+          <p className="text-xs text-amber-600 mt-0.5">
+            {stats.totalBooks} books • {tagStats.length} tags • {stats.topGenres.length} genres
+          </p>
+        </div>
+
+        <div className="p-4">
+          {/* Tag Stats Table - Main Section */}
+          <div className="mb-6">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Your Reading Tags</h4>
+            
+            {/* Table Header */}
+            <div className="grid grid-cols-3 gap-2 p-2 bg-gray-50 rounded text-xs font-medium text-gray-600 mb-1">
+              <div>Tag</div>
+              <div className="text-center">Books</div>
+              <div className="text-right">Rank</div>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-20 bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-amber-500 h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${(item.count / stats.topGenres[0].count) * 100}%` 
-                  }}
-                ></div>
+            
+            {/* Table Rows */}
+            <div className="space-y-1">
+              {tagStats.slice(0, 10).map((item, index) => (
+                <div key={item.tag} className="grid grid-cols-3 gap-2 p-2 hover:bg-gray-50 rounded">
+                  <div className="text-sm text-gray-800 capitalize font-medium">
+                    {item.tag}
+                  </div>
+                  <div className="text-sm text-center text-amber-700 font-medium">
+                    {item.count}
+                  </div>
+                  <div className="text-xs text-right text-gray-500">
+                    #{index + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Show more tags if available */}
+            {tagStats.length > 10 && (
+              <div className="mt-3 text-center">
+                <p className="text-xs text-gray-500">
+                  +{tagStats.length - 10} more tags from your reading history
+                </p>
               </div>
-              <span className="text-sm font-semibold text-amber-700 w-8">
-                {item.count}
-              </span>
-            </div>
+            )}
           </div>
-        ))}
+
+          {/* Full Genres Section */}
+          <div className="pt-4 border-t">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="text-sm font-medium text-gray-600">Full Genre List</h4>
+                <p className="text-xs text-gray-400">Complete genre data</p>
+              </div>
+              <button
+                onClick={() => setShowModal(true)}
+                className="text-xs text-amber-600 hover:text-amber-700 border border-amber-200 px-2 py-1 rounded"
+              >
+                View All {stats.topGenres.length}
+              </button>
+            </div>
+            
+            {/* Show first 5 genres */}
+            <div className="space-y-1">
+              {stats.topGenres.slice(0, 5).map((item, index) => (
+                <div key={item.genre} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 w-4">{index + 1}</span>
+                    <span className="text-sm text-gray-700 capitalize">
+                      {item.genre.length > 40 ? item.genre.substring(0, 40) + '...' : item.genre}
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-600">{item.count}</span>
+                </div>
+              ))}
+            </div>
+
+            {stats.topGenres.length > 5 && (
+              <div className="mt-2 text-center">
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  +{stats.topGenres.length - 5} more genres
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-      
-      <div className="pt-4 border-t text-sm text-amber-600 mt-4">
-        <span>Total Books: {stats.totalBooks}</span>
-      </div>
-    </div>
+
+      {/* Modal for all genres */}
+      <GenreModal
+        genres={stats.topGenres}
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+      />
+    </>
   );
 }
