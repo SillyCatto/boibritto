@@ -85,16 +85,48 @@ export default function GenreStats() {
     fetchStats();
   }, []);
 
+  // Break down genres into small tags and count them
+  const getTagStats = (): TagStat[] => {
+    if (!stats?.topGenres) return [];
+    
+    const tagMap = new Map<string, { count: number; sourceGenres: Set<string> }>();
+    
+    stats.topGenres.forEach(genre => {
+      // Split by common separators and clean up
+      const tags = genre.genre
+        .split(/[\/\-\s&,]+/)
+        .filter(part => part.trim().length > 0)
+        .map(part => part.trim().toLowerCase())
+        .filter(part => part.length > 1); // Remove single letters
+      
+      tags.forEach(tag => {
+        if (!tagMap.has(tag)) {
+          tagMap.set(tag, { count: 0, sourceGenres: new Set() });
+        }
+        tagMap.get(tag)!.count += genre.count;
+        tagMap.get(tag)!.sourceGenres.add(genre.genre);
+      });
+    });
+    
+    return Array.from(tagMap.entries())
+      .map(([tag, data]) => ({
+        tag: tag.charAt(0).toUpperCase() + tag.slice(1),
+        count: data.count,
+        sourceGenres: Array.from(data.sourceGenres)
+      }))
+      .sort((a, b) => b.count - a.count);
+  };
+
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white border rounded-lg p-4">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-300 rounded mb-4 w-1/3"></div>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
+          <div className="h-5 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex justify-between">
-                <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-                <div className="h-4 bg-gray-300 rounded w-8"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-4 bg-gray-200 rounded w-8"></div>
               </div>
             ))}
           </div>
