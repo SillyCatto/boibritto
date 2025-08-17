@@ -14,17 +14,70 @@ interface StatsData {
   message?: string;
 }
 
+interface TagStat {
+  tag: string;
+  count: number;
+  sourceGenres: string[];
+}
+
+interface GenreModalProps {
+  genres: GenreStat[];
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function GenreModal({ genres, isOpen, onClose }: GenreModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center p-4 border-b">
+          <h3 className="text-lg font-medium text-amber-700">All Genres ({genres.length})</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="p-4 overflow-y-auto max-h-[60vh]">
+          <div className="space-y-2">
+            {genres.map((item, index) => (
+              <div key={item.genre} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400 w-6">{index + 1}</span>
+                  <span className="text-sm text-gray-800 capitalize">{item.genre}</span>
+                </div>
+                <span className="text-sm text-amber-700 font-medium">{item.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function GenreStats() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const data = await getRecommendations();
-        setStats(data);
-      } catch (error) {
+        setIsLoading(true);
+        setError(null);
+        const response = await getRecommendations();
+        setStats(response.data);
+      } catch (error: any) {
         console.error('Error fetching genre stats:', error);
+        setError(error.message || 'Failed to load reading preferences');
       } finally {
         setIsLoading(false);
       }
