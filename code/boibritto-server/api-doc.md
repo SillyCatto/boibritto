@@ -38,6 +38,7 @@ Ex-
 - #### [Blogs](#blog-routes)
 - #### [Discussions](#discussion-routes)
 - #### [Comments](#comment-routes)
+- #### [User Books](#user-books-routes)
 
 
 ---
@@ -2027,6 +2028,604 @@ Sample response:
     "data": {
         "deletedCount": 3
     }
+}
+```
+
+---
+
+## User Books Routes
+
+### List User Books
+
+**GET** `/api/user-books`
+
+**Query Parameters (optional):**
+
+* `author=me` — Fetch books written by the authenticated user.
+* `author=<uid>` — Fetch **public** books of a specific user.
+* `search=<query>` — Search books by title (case insensitive).
+* `genre=<genre>` — Filter books by genre.
+* `completed=<true/false>` — Filter by completion status.
+
+**Behavior:**
+
+* No `author` param → Return all **public** books (sorted by most recent, paginated 20 per page).
+* `author=me` → Return **all** books of the authenticated user (private + public).
+* `author=<uid>` → Return only **public** books by that user.
+* `search=<query>` → Search books by title (case insensitive). Can be combined with other parameters.
+* Returns book metadata only (chapters not included).
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "User books fetched successfully",
+  "data": {
+    "books": [ /* Array of book objects */ ]
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "User books fetched successfully",
+    "data": {
+        "books": [
+            {
+                "_id": "6847133861841477d982ac22",
+                "author": {
+                    "_id": "6843292c5cc2e9ee0b9bc0a9",
+                    "username": "fantasywrites",
+                    "displayName": "Fantasy Writer",
+                    "avatar": "https://lh3.googleusercontent.com/..."
+                },
+                "title": "The Chronicles of Aetheria",
+                "synopsis": "An epic fantasy tale of magic, friendship, and the fight against darkness...",
+                "genres": ["fantasy", "adventure"],
+                "visibility": "public",
+                "coverImage": "https://firebase.storage.url/cover123.jpg",
+                "likes": ["user1", "user2"],
+                "isCompleted": false,
+                "createdAt": "2025-06-09T17:00:40.091Z",
+                "updatedAt": "2025-06-09T17:00:40.091Z",
+                "chapterCount": 5,
+                "totalWordCount": 12450
+            }
+        ]
+    }
+}
+```
+
+---
+
+### Get a User Book by ID
+
+**GET** `/api/user-books/:id`
+
+**Behavior:**
+
+* Return the book if:
+  * It is **public**, OR
+  * It belongs to the **authenticated user**
+* Includes basic book information and chapter list (titles only).
+* Chapter content not included - use chapter endpoints for full content.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "User book fetched successfully",
+  "data": {
+    "book": { /* Book details with chapter list */ }
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "User book fetched successfully",
+    "data": {
+        "book": {
+            "_id": "6847133861841477d982ac22",
+            "author": {
+                "_id": "6843292c5cc2e9ee0b9bc0a9",
+                "username": "fantasywrites",
+                "displayName": "Fantasy Writer",
+                "avatar": "https://lh3.googleusercontent.com/..."
+            },
+            "title": "The Chronicles of Aetheria",
+            "synopsis": "An epic fantasy tale of magic, friendship, and the fight against darkness in the mystical realm of Aetheria.",
+            "genres": ["fantasy", "adventure"],
+            "visibility": "public",
+            "coverImage": "https://firebase.storage.url/cover123.jpg",
+            "likes": ["user1", "user2"],
+            "isCompleted": false,
+            "createdAt": "2025-06-09T17:00:40.091Z",
+            "updatedAt": "2025-06-15T12:30:40.091Z",
+            "chapters": [
+                {
+                    "_id": "ch1",
+                    "title": "The Awakening",
+                    "chapterNumber": 1,
+                    "visibility": "public",
+                    "wordCount": 2500,
+                    "createdAt": "2025-06-09T18:00:40.091Z"
+                },
+                {
+                    "_id": "ch2",
+                    "title": "The Journey Begins",
+                    "chapterNumber": 2,
+                    "visibility": "private",
+                    "wordCount": 0,
+                    "createdAt": "2025-06-10T10:00:40.091Z"
+                }
+            ]
+        }
+    }
+}
+```
+
+---
+
+### Create a User Book
+
+**POST** `/api/user-books`
+
+**Input:** `req.body.data`
+
+```json
+{
+  "title": "My New Book", // required, max 500 characters
+  "synopsis": "A captivating story about...", // optional, max 1000 characters
+  "genres": ["fiction", "drama"], // optional
+  "visibility": "private", // optional, defaults to "private"
+  "coverImage": "https://firebase.storage.url/cover.jpg" // optional, Firebase storage URL
+}
+```
+
+**Behavior:**
+
+* Authenticated user creates a new book.
+* Book starts with no chapters (can be added later).
+* `visibility` defaults to "private".
+* `coverImage` should be a Firebase Storage URL.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "User book created successfully",
+  "data": {
+    "book": { /* Newly created book object */ }
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "User book created successfully",
+    "data": {
+        "book": {
+            "_id": "6847144261841477d982ac35",
+            "author": {
+                "_id": "6843292c5cc2e9ee0b9bc0a9",
+                "username": "newauthor",
+                "displayName": "New Author",
+                "avatar": "https://lh3.googleusercontent.com/..."
+            },
+            "title": "My New Book",
+            "synopsis": "A captivating story about friendship and adventure.",
+            "genres": ["fiction", "drama"],
+            "visibility": "private",
+            "coverImage": "https://firebase.storage.url/cover.jpg",
+            "likes": [],
+            "isCompleted": false,
+            "createdAt": "2025-06-09T17:15:40.091Z",
+            "updatedAt": "2025-06-09T17:15:40.091Z",
+            "__v": 0
+        }
+    }
+}
+```
+
+---
+
+### Update a User Book
+
+**PATCH** `/api/user-books/:id`
+
+**Input:** `req.body.data`
+
+```json
+{
+  "title": "Updated Book Title", // optional
+  "synopsis": "Updated synopsis...", // optional
+  "genres": ["fantasy", "adventure"], // optional
+  "visibility": "public", // optional
+  "coverImage": "https://firebase.storage.url/newcover.jpg", // optional
+  "isCompleted": true // optional
+}
+```
+
+**Behavior:**
+
+* Only the **author** can update their book.
+* All fields are optional - update only provided fields.
+* Changing visibility to "private" when book has public chapters will fail.
+* Setting `isCompleted` to `true` requires the book to have at least one chapter.
+* `coverImage` should be Firebase Storage URL.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "User book updated successfully",
+  "data": {
+    "book": { /* Updated book object */ }
+  }
+}
+```
+
+**Error Response (visibility conflict):**
+
+```json
+{
+  "success": false,
+  "message": "Cannot make book private while it has public chapters",
+  "data": {}
+}
+```
+
+**Error Response (completion without chapters):**
+
+```json
+{
+  "success": false,
+  "message": "Cannot mark book as completed without any chapters",
+  "data": {}
+}
+```
+
+---
+
+### Delete a User Book
+
+**DELETE** `/api/user-books/:id`
+
+**Behavior:**
+
+* Only the **author** can delete their book.
+* Deleting a book will also delete all its chapters.
+* This is a permanent action and cannot be undone.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "User book and all chapters deleted successfully"
+}
+```
+
+---
+
+### Like/Unlike a User Book
+
+**POST** `/api/user-books/:id/like`
+
+**Behavior:**
+
+* Authenticated user can like/unlike a public book.
+* Toggles like status - if already liked, removes like; if not liked, adds like.
+* Authors cannot like their own books.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Book liked successfully", // or "Book unliked successfully"
+  "data": {
+    "liked": true, // or false if unliked
+    "likeCount": 15
+  }
+}
+```
+
+---
+
+## Chapter Routes
+
+### Get Chapters for a Book
+
+**GET** `/api/user-books/:bookId/chapters`
+
+**Query Parameters (optional):**
+
+* `published=<true/false>` — Filter by published status (public chapters only).
+
+**Behavior:**
+
+* Returns chapter metadata for the specified book (content excluded for performance).
+* If user is the author: returns all chapters (private + public).
+* If user is not the author: returns only public chapters.
+* Chapters are sorted by chapter number.
+* Use the individual chapter endpoint to get full content.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Chapters fetched successfully",
+  "data": {
+    "chapters": [ /* Array of chapter objects without content */ ]
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Chapters fetched successfully",
+    "data": {
+        "chapters": [
+            {
+                "_id": "ch1",
+                "book": "book123",
+                "author": {
+                    "_id": "user123",
+                    "username": "fantasywrites",
+                    "displayName": "Fantasy Writer"
+                },
+                "title": "The Awakening",
+                "chapterNumber": 1,
+                "visibility": "public",
+                "wordCount": 2500,
+                "likes": ["user1", "user2"],
+                "createdAt": "2025-06-09T18:00:40.091Z",
+                "updatedAt": "2025-06-09T18:00:40.091Z"
+            },
+            {
+                "_id": "ch2",
+                "book": "book123", 
+                "author": {
+                    "_id": "user123",
+                    "username": "fantasywrites",
+                    "displayName": "Fantasy Writer"
+                },
+                "title": "The Journey Begins",
+                "chapterNumber": 2,
+                "visibility": "private",
+                "wordCount": 0,
+                "likes": [],
+                "createdAt": "2025-06-10T10:00:40.091Z",
+                "updatedAt": "2025-06-10T10:00:40.091Z"
+            }
+        ]
+    }
+}
+```
+
+---
+
+### Get a Specific Chapter
+
+**GET** `/api/chapters/:id`
+
+**Behavior:**
+
+* Return the chapter if:
+  * It is **public**, OR
+  * It belongs to the **authenticated user**
+* Includes full chapter content.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Chapter fetched successfully",
+  "data": {
+    "chapter": { /* Full chapter object with content */ }
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Chapter fetched successfully",
+    "data": {
+        "chapter": {
+            "_id": "ch1",
+            "book": {
+                "_id": "book123",
+                "title": "The Chronicles of Aetheria",
+                "author": {
+                    "username": "fantasywrites",
+                    "displayName": "Fantasy Writer"
+                }
+            },
+            "author": {
+                "_id": "user123",
+                "username": "fantasywrites",
+                "displayName": "Fantasy Writer"
+            },
+            "title": "The Awakening",
+            "content": "The morning sun cast long shadows across the ancient forest as Lyra stepped into the clearing...",
+            "chapterNumber": 1,
+            "visibility": "public",
+            "wordCount": 2500,
+            "likes": ["user1", "user2"],
+            "createdAt": "2025-06-09T18:00:40.091Z",
+            "updatedAt": "2025-06-09T18:00:40.091Z"
+        }
+    }
+}
+```
+
+---
+
+### Create a Chapter
+
+**POST** `/api/chapters`
+
+**Input:** `req.body.data`
+
+```json
+{
+  "bookId": "6847144261841477d982ac35", // required
+  "title": "Chapter Title", // required, max 200 characters
+  "content": "Chapter content goes here...", // required, max 50,000 characters
+  "chapterNumber": 1, // required, must be unique per book
+  "visibility": "private" // optional, defaults to "private"
+}
+```
+
+**Behavior:**
+
+* Only the book author can create chapters for their book.
+* `chapterNumber` must be unique within the book.
+* If book is private, chapter cannot be public.
+* Word count is automatically calculated.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Chapter created successfully",
+  "data": {
+    "chapter": { /* Newly created chapter object */ }
+  }
+}
+```
+
+**Error Response (visibility conflict):**
+
+```json
+{
+  "success": false,
+  "message": "Chapter cannot be public when the book is private",
+  "data": {}
+}
+```
+
+**Error Response (duplicate chapter number):**
+
+```json
+{
+  "success": false,
+  "message": "Chapter number already exists for this book",
+  "data": {}
+}
+```
+
+---
+
+### Update a Chapter
+
+**PATCH** `/api/chapters/:id`
+
+**Input:** `req.body.data`
+
+```json
+{
+  "title": "Updated Chapter Title", // optional
+  "content": "Updated chapter content...", // optional
+  "visibility": "public" // optional
+}
+```
+
+**Behavior:**
+
+* Only the chapter author can update their chapter.
+* Cannot change `bookId` or `chapterNumber` after creation.
+* If changing visibility to public, parent book must be public.
+* Word count is automatically recalculated if content changes.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Chapter updated successfully",
+  "data": {
+    "chapter": { /* Updated chapter object */ }
+  }
+}
+```
+
+---
+
+### Delete a Chapter
+
+**DELETE** `/api/chapters/:id`
+
+**Behavior:**
+
+* Only the chapter author can delete their chapter.
+* This is a permanent action and cannot be undone.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Chapter deleted successfully"
+}
+```
+
+---
+
+### Like/Unlike a Chapter
+
+**POST** `/api/chapters/:id/like`
+
+**Behavior:**
+
+* Authenticated user can like/unlike a public chapter.
+* Toggles like status - if already liked, removes like; if not liked, adds like.
+* Authors cannot like their own chapters.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Chapter liked successfully", // or "Chapter unliked successfully"
+  "data": {
+    "liked": true, // or false if unliked
+    "likeCount": 8
+  }
 }
 ```
 
