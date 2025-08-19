@@ -37,6 +37,7 @@ Ex-
 - #### [Reading List](#reading-list-routes)
 - #### [Blogs](#blog-routes)
 - #### [Discussions](#discussion-routes)
+- #### [Comments](#comment-routes)
 
 
 ---
@@ -1745,6 +1746,287 @@ Sample response:
     "success": true,
     "message": "Discussion deleted successfully",
     "data": {}
+}
+```
+
+---
+
+## Discussion Comment Routes
+
+### List Comments for a Discussion
+
+**GET** `/api/comments/:discussionId`
+
+**Behavior:**
+
+* Returns all comments for a specific discussion in a hierarchical structure.
+* Parent comments are returned with their replies nested.
+* Only public comments are returned.
+* Results are sorted by creation time (oldest first for better reading flow).
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Comments fetched successfully",
+  "data": {
+    "comments": [ /* Array of parent comments with nested replies */ ]
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Comments fetched successfully",
+    "data": {
+        "comments": [
+            {
+                "_id": "6847133861841477d982ac22",
+                "discussion": "6847144261841477d982ac2f",
+                "user": {
+                    "_id": "6843292c5cc2e9ee0b9bc0a9",
+                    "username": "bookworm",
+                    "displayName": "BookWorm",
+                    "avatar": "https://lh3.googleusercontent.com/..."
+                },
+                "content": "This is such an interesting discussion! I completely agree with your perspective.",
+                "spoilerAlert": false,
+                "parentComment": null,
+                "createdAt": "2025-06-09T17:00:40.091Z",
+                "updatedAt": "2025-06-09T17:00:40.091Z",
+                "replies": [
+                    {
+                        "_id": "6847144261841477d982ac30",
+                        "discussion": "6847144261841477d982ac2f",
+                        "user": {
+                            "_id": "6843292c5cc2e9ee0b9bc0a9",
+                            "username": "scifireader",
+                            "displayName": "SciFi Reader",
+                            "avatar": "https://lh3.googleusercontent.com/..."
+                        },
+                        "content": "Thanks for sharing your thoughts! What other books would you recommend?",
+                        "spoilerAlert": false,
+                        "parentComment": "6847133861841477d982ac22",
+                        "createdAt": "2025-06-09T17:10:40.091Z",
+                        "updatedAt": "2025-06-09T17:10:40.091Z"
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+---
+
+### Create a Comment
+
+**POST** `/api/comments`
+
+**Input:** `req.body.data`
+
+```json
+{
+  "discussionId": "6847144261841477d982ac2f", // required
+  "content": "This is my comment on the discussion...", // required, max 500 characters
+  "spoilerAlert": false, // required
+  "parentComment": "6847133861841477d982ac22" // optional, for replies
+}
+```
+
+**Behavior:**
+
+* Authenticated user creates a comment on a discussion.
+* If `parentComment` is provided, creates a reply to that comment.
+* If `parentComment` is null/not provided, creates a top-level comment.
+* Replies can only be made to parent comments (1-level deep only).
+* Content has a maximum of 500 characters.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Comment created successfully",
+  "data": {
+    "comment": { /* Newly created comment object */ }
+  }
+}
+```
+
+<br>
+
+Sample request (parent comment):
+```json
+{
+    "data": {
+        "discussionId": "6847144261841477d982ac2f",
+        "content": "This is a fascinating topic! I'd love to hear more perspectives.",
+        "spoilerAlert": false
+    }
+}
+```
+
+Sample request (reply comment):
+```json
+{
+    "data": {
+        "discussionId": "6847144261841477d982ac2f",
+        "content": "I completely agree with your point about character development.",
+        "spoilerAlert": false,
+        "parentComment": "6847133861841477d982ac22"
+    }
+}
+```
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Comment created successfully",
+    "data": {
+        "comment": {
+            "_id": "6847144261841477d982ac35",
+            "discussion": "6847144261841477d982ac2f",
+            "user": {
+                "_id": "6843292c5cc2e9ee0b9bc0a9",
+                "username": "bookworm",
+                "displayName": "BookWorm",
+                "avatar": "https://lh3.googleusercontent.com/..."
+            },
+            "content": "This is a fascinating topic! I'd love to hear more perspectives.",
+            "spoilerAlert": false,
+            "parentComment": null,
+            "createdAt": "2025-06-09T17:15:40.091Z",
+            "updatedAt": "2025-06-09T17:15:40.091Z",
+            "__v": 0
+        }
+    }
+}
+```
+
+**Error Response (trying to reply to a reply):**
+
+```json
+{
+  "success": false,
+  "message": "Comments can only be 1 level deep (replies to replies are not allowed)",
+  "data": {}
+}
+```
+
+---
+
+### Update a Comment
+
+**PATCH** `/api/comments/:id`
+
+**Input:** `req.body.data`
+
+```json
+{
+  "content": "Updated comment content...", // optional
+  "spoilerAlert": true // optional
+}
+```
+
+**Behavior:**
+
+* Only the **owner** can update their comment.
+* Only `content` and `spoilerAlert` fields can be updated.
+* `content` has a maximum of 500 characters.
+* Cannot change `discussionId` or `parentComment` after creation.
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Comment updated successfully",
+  "data": {
+    "comment": { /* Updated comment object */ }
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Comment updated successfully",
+    "data": {
+        "comment": {
+            "_id": "6847144261841477d982ac35",
+            "discussion": "6847144261841477d982ac2f",
+            "user": {
+                "_id": "6843292c5cc2e9ee0b9bc0a9",
+                "username": "bookworm",
+                "displayName": "BookWorm",
+                "avatar": "https://lh3.googleusercontent.com/..."
+            },
+            "content": "Updated: This is an even more fascinating topic after reading everyone's thoughts!",
+            "spoilerAlert": true,
+            "parentComment": null,
+            "createdAt": "2025-06-09T17:15:40.091Z",
+            "updatedAt": "2025-06-09T17:25:40.091Z",
+            "__v": 0
+        }
+    }
+}
+```
+
+---
+
+### Delete a Comment
+
+**DELETE** `/api/comments/:id`
+
+**Behavior:**
+
+* Only the **owner** can delete their comment.
+* Deleting a parent comment will also delete all its replies.
+* This is a permanent action and cannot be undone.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Comment deleted successfully"
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Comment deleted successfully",
+    "data": {}
+}
+```
+
+**Response when comment has replies:**
+
+```json
+{
+    "success": true,
+    "message": "Comment and its replies deleted successfully",
+    "data": {
+        "deletedCount": 3
+    }
 }
 ```
 
