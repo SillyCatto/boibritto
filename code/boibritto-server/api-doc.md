@@ -832,7 +832,8 @@ Sample response
   "status": "interested",
   "startedAt": "2025-06-01T00:00:00.000Z", // optional depending on status
   "completedAt": "2025-06-05T00:00:00.000Z", // optional depending on status
-  "visibility": "private" // optional, defaults to "public"
+  "visibility": "private", // optional, defaults to "public"
+  "genres": ["fiction", "mystery"] // optional, array of book genres for recommendations
 }
 ```
 
@@ -840,6 +841,7 @@ Sample response
 
 * Adds a new item to the current user's reading list.
 * Ensures proper validation for `startedAt` and `completedAt` based on `status`.
+* `genres` field is optional and used for generating reading recommendations.
 
 **Date Validation Rules:**
 
@@ -869,7 +871,8 @@ Sample request:
     "data": {
         "volumeId": "book-id-2",
         "status": "reading",
-        "startedAt": "2025-06-10T00:00:00.000Z"
+        "startedAt": "2025-06-10T00:00:00.000Z",
+        "genres": ["fiction", "mystery"]
     }
 }
 ```
@@ -887,6 +890,7 @@ Sample Response:
                 "user": "6843292c5cc2e9ee0b9bc0a9",
                 "volumeId": "book-id-1",
                 "status": "interested",
+                "genres": ["sci-fi"],
                 "visibility": "public",
                 "createdAt": "2025-06-15T15:15:51.999Z",
                 "updatedAt": "2025-06-15T15:15:51.999Z",
@@ -898,6 +902,7 @@ Sample Response:
                 "volumeId": "book-id-2",
                 "status": "reading",
                 "startedAt": "2025-06-10T00:00:00.000Z",
+                "genres": ["fiction", "mystery"],
                 "visibility": "public",
                 "createdAt": "2025-06-15T15:16:53.399Z",
                 "updatedAt": "2025-06-15T15:16:53.399Z",
@@ -1067,6 +1072,58 @@ Sample Response:
     }
 }
 ```
+
+---
+
+### Get Reading Recommendations
+
+**GET** `/api/reading-list/recommendations`
+
+**Behavior:**
+
+* Returns the top 5 most frequently read genres by the authenticated user based on their reading list.
+* Counts are calculated dynamically from the user's current reading list.
+* Genres are ranked by frequency (how many books of each genre the user has added).
+
+**Headers:**
+
+```
+Authorization: Bearer <FIREBASE_ID_TOKEN>
+```
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Recommendations fetched successfully",
+  "data": {
+    "topGenres": [ /* Array of top 5 genres with counts */ ],
+  }
+}
+```
+
+<br>
+
+Sample response:
+
+```json
+{
+    "success": true,
+    "message": "Recommendations fetched successfully",
+    "data": {
+        "topGenres": [
+            { "genre": "fiction", "count": 12 },
+            { "genre": "mystery", "count": 8 },
+            { "genre": "science fiction", "count": 5 },
+            { "genre": "fantasy", "count": 3 },
+            { "genre": "biography", "count": 2 }
+        ],
+    }
+}
+```
+
+**Note:** If user has no books in reading list, `topGenres` will be an empty array.
 
 ---
 
