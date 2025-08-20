@@ -26,6 +26,12 @@ interface GenreModalProps {
   onClose: () => void;
 }
 
+interface TagModalProps {
+  tags: TagStat[];
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 function GenreModal({ genres, isOpen, onClose }: GenreModalProps) {
   if (!isOpen) return null;
 
@@ -62,11 +68,60 @@ function GenreModal({ genres, isOpen, onClose }: GenreModalProps) {
   );
 }
 
+function TagModal({ tags, isOpen, onClose }: TagModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center p-4 border-b">
+          <h3 className="text-lg font-medium text-amber-700">All Reading Tags ({tags.length})</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="p-4 overflow-y-auto max-h-[60vh]">
+          {/* Table Header */}
+          <div className="grid grid-cols-3 gap-2 p-2 bg-gray-50 rounded text-xs font-medium text-gray-600 mb-2">
+            <div>Tag</div>
+            <div className="text-center">Books</div>
+            <div className="text-right">Rank</div>
+          </div>
+          
+          {/* Table Rows */}
+          <div className="space-y-1">
+            {tags.map((item, index) => (
+              <div key={item.tag} className="grid grid-cols-3 gap-2 p-2 hover:bg-gray-50 rounded">
+                <div className="text-sm text-gray-800 capitalize font-medium">
+                  {item.tag}
+                </div>
+                <div className="text-sm text-center text-amber-700 font-medium">
+                  {item.count}
+                </div>
+                <div className="text-xs text-right text-gray-500">
+                  #{index + 1}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function GenreStats() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showGenreModal, setShowGenreModal] = useState(false);
+  const [showTagModal, setShowTagModal] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -176,7 +231,15 @@ export default function GenreStats() {
         <div className="p-4">
           {/* Tag Stats Table - Main Section */}
           <div className="mb-6">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Your Reading Tags</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-gray-700">Your Reading Tags</h4>
+              <button
+                onClick={() => setShowTagModal(true)}
+                className="text-xs text-amber-600 hover:text-amber-700 border border-amber-200 px-2 py-1 rounded"
+              >
+                View All {tagStats.length}
+              </button>
+            </div>
             
             {/* Table Header */}
             <div className="grid grid-cols-3 gap-2 p-2 bg-gray-50 rounded text-xs font-medium text-gray-600 mb-1">
@@ -185,9 +248,9 @@ export default function GenreStats() {
               <div className="text-right">Rank</div>
             </div>
             
-            {/* Table Rows */}
+            {/* Table Rows - Show only top 5 */}
             <div className="space-y-1">
-              {tagStats.slice(0, 10).map((item, index) => (
+              {tagStats.slice(0, 5).map((item, index) => (
                 <div key={item.tag} className="grid grid-cols-3 gap-2 p-2 hover:bg-gray-50 rounded">
                   <div className="text-sm text-gray-800 capitalize font-medium">
                     {item.tag}
@@ -203,11 +266,14 @@ export default function GenreStats() {
             </div>
 
             {/* Show more tags if available */}
-            {tagStats.length > 10 && (
+            {tagStats.length > 5 && (
               <div className="mt-3 text-center">
-                <p className="text-xs text-gray-500">
-                  +{tagStats.length - 10} more tags from your reading history
-                </p>
+                <button
+                  onClick={() => setShowTagModal(true)}
+                  className="text-xs text-amber-600 hover:text-amber-700 font-medium"
+                >
+                  +{tagStats.length - 5} more tags
+                </button>
               </div>
             )}
           </div>
@@ -220,7 +286,7 @@ export default function GenreStats() {
                 <p className="text-xs text-gray-400">Complete genre data</p>
               </div>
               <button
-                onClick={() => setShowModal(true)}
+                onClick={() => setShowGenreModal(true)}
                 className="text-xs text-amber-600 hover:text-amber-700 border border-amber-200 px-2 py-1 rounded"
               >
                 View All {stats.topGenres.length}
@@ -245,7 +311,7 @@ export default function GenreStats() {
             {stats.topGenres.length > 5 && (
               <div className="mt-2 text-center">
                 <button
-                  onClick={() => setShowModal(true)}
+                  onClick={() => setShowGenreModal(true)}
                   className="text-xs text-gray-500 hover:text-gray-700"
                 >
                   +{stats.topGenres.length - 5} more genres
@@ -259,8 +325,15 @@ export default function GenreStats() {
       {/* Modal for all genres */}
       <GenreModal
         genres={stats.topGenres}
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        isOpen={showGenreModal}
+        onClose={() => setShowGenreModal(false)}
+      />
+
+      {/* Modal for all tags */}
+      <TagModal
+        tags={tagStats}
+        isOpen={showTagModal}
+        onClose={() => setShowTagModal(false)}
       />
     </>
   );
