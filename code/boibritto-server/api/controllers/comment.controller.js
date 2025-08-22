@@ -107,7 +107,62 @@ const createComment = async (req, res) => {
   }
 };
 
+const updateComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content, spoilerAlert } = req.body.data || {};
+
+    // Find the comment
+    const comment = await Comment.findById(id);
+    if (!comment) {
+      return sendError(res, HTTP.NOT_FOUND, "Comment not found");
+    }
+
+    // Check if user is the owner
+    if (comment.user.toString() !== req.user._id.toString()) {
+      return sendError(res, HTTP.FORBIDDEN, "You can only update your own comments");
+    }
+
+    // Validation for content if provided
+    if (content !== undefined) {
+      if (typeof content !== "string" || content.length > 500) {
+        return sendError(res, HTTP.BAD_REQUEST, "Content must be a string and <= 500 characters");
+      }
+    }
+
+    // Validation for spoilerAlert if provided
+    if (spoilerAlert !== undefined && typeof spoilerAlert !== "boolean") {
+      return sendError(res, HTTP.BAD_REQUEST, "spoilerAlert must be boolean");
+    }
+
+    // Build update object with only provided fields
+    const updateData = {};
+    if (content !== undefined) updateData.content = content;
+    if (spoilerAlert !== undefined) updateData.spoilerAlert = spoilerAlert;
+
+    // If no fields to update
+    if (Object.keys(updateData).length === 0) {
+      return sendError(res, HTTP.BAD_REQUEST, "No valid fields provided for update");
+    }
+
+    // Update the comment
+    const updatedComment = await Comment.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate("user", "_id username displayName avatar");
+
+    return sendSuccess(res, HTTP.OK, "Comment updated successfully", {
+      comment: updatedComment,
+    });
+  } catch (err) {
+    logError("Failed to update comment", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to update comment");
+  }
+};
+
 export const CommentController = {
   getCommentsByDiscussion,
   createComment,
+  updateComment,
 };
