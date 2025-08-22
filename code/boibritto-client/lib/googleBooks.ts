@@ -101,3 +101,10 @@ export const fetchMultipleBookDetails = async (
 ): Promise<FullBookData[]> => {
   return Promise.all(volumeIds.map((volumeId) => fetchBookDetails(volumeId)));
 };
+
+// 🆕 NEW: Helper function to extract and normalize genres
+export const extractGenres = (bookData: FullBookData): string[] => {
+  if (!bookData.categories) return [];
+  
+  return bookData.categories.map(category => category.toLowerCase());
+};
