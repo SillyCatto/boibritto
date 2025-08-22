@@ -5,5 +5,6 @@ import verifyUser from "../middlewares/verifyUser.js";
 const commentRoute = express.Router();
 
 commentRoute.get("/:discussionId", verifyUser, CommentController.getCommentsByDiscussion);
+commentRoute.post("/", verifyUser, CommentController.createComment);
 
 export default commentRoute;

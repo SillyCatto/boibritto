@@ -44,6 +44,70 @@ const getCommentsByDiscussion = async (req, res) => {
   }
 };
 
+const createComment = async (req, res) => {
+  try {
+    const { discussionId, content, spoilerAlert, parentComment } = req.body.data || {};
+
+    // Validation
+    if (!discussionId || typeof discussionId !== "string") {
+      return sendError(res, HTTP.BAD_REQUEST, "Discussion ID is required");
+    }
+    if (!content || typeof content !== "string" || content.length > 500) {
+      return sendError(res, HTTP.BAD_REQUEST, "Content is required and must be <= 500 characters");
+    }
+    if (typeof spoilerAlert !== "boolean") {
+      return sendError(res, HTTP.BAD_REQUEST, "spoilerAlert is required and must be boolean");
+    }
+
+    // Verify discussion exists and is public
+    const discussion = await Discussion.findById(discussionId);
+    if (!discussion || discussion.visibility !== "public") {
+      return sendError(res, HTTP.NOT_FOUND, "Discussion not found or not accessible");
+    }
+
+    // If parentComment is provided, validate it exists and enforce 1-level depth
+    if (parentComment) {
+      const parent = await Comment.findById(parentComment);
+      if (!parent) {
+        return sendError(res, HTTP.NOT_FOUND, "Parent comment not found");
+      }
+      // Check if parent comment belongs to the same discussion
+      if (parent.discussion.toString() !== discussionId) {
+        return sendError(res, HTTP.BAD_REQUEST, "Parent comment must belong to the same discussion");
+      }
+      // Check if trying to reply to a reply (enforce 1-level depth)
+      if (parent.parentComment) {
+        return sendError(res, HTTP.BAD_REQUEST, "Comments can only be 1 level deep (replies to replies are not allowed)");
+      }
+    }
+
+    // Create the comment
+    const comment = await Comment.create({
+      discussion: discussionId,
+      user: req.user._id,
+      content,
+      spoilerAlert,
+      parentComment: parentComment || null,
+    });
+
+    // Populate user data for response
+    const populatedComment = await Comment.findById(comment._id)
+      .populate("user", "_id username displayName avatar");
+
+    return sendSuccess(res, HTTP.CREATED, "Comment created successfully", {
+      comment: populatedComment,
+    });
+  } catch (err) {
+    // Handle mongoose validation errors (including the pre-save hook)
+    if (err.message && err.message.includes("1 level deep")) {
+      return sendError(res, HTTP.BAD_REQUEST, err.message);
+    }
+    logError("Failed to create comment", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to create comment");
+  }
+};
+
 export const CommentController = {
   getCommentsByDiscussion,
+  createComment,
 };
