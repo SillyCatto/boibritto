@@ -28,6 +28,7 @@ export default function AddToReadingListButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [user, setUser] = useState<any>(null);
+  const [bookPublishDate, setBookPublishDate] = useState<string>("");
 
   // Google auth listener
   useEffect(() => {
@@ -38,19 +39,74 @@ export default function AddToReadingListButton({
     return unsubscribe;
   }, []);
 
+  // Fetch book data and set publish date when modal opens
+  useEffect(() => {
+    if (isModalOpen && bookId) {
+      const fetchBookData = async () => {
+        try {
+          const bookData = await fetchBookDetails(bookId);
+          if (bookData.publishedDate) {
+            // Parse various date formats and convert to YYYY-MM-DD
+            const publishDate = new Date(bookData.publishedDate);
+            if (!isNaN(publishDate.getTime())) {
+              setBookPublishDate(publishDate.toISOString().split("T")[0]);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch book publish date:", error);
+        }
+      };
+      fetchBookData();
+    }
+  }, [isModalOpen, bookId]);
+
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    return new Date().toISOString().split("T")[0];
+  };
+
+  // Helper function to get the minimum allowed date (publish date, or if not available, a reasonable past date)
+  const getMinDate = () => {
+    if (bookPublishDate) {
+      return bookPublishDate;
+    }
+    // If no publish date available, allow dates from 100 years ago
+    const fallbackDate = new Date();
+    fallbackDate.setFullYear(fallbackDate.getFullYear() - 100);
+    return fallbackDate.toISOString().split("T")[0];
+  };
+
+  // Helper function to get the maximum allowed date (today)
+  const getMaxDate = () => {
+    return getTodayDate();
+  };
+
+  // Helper function to get minimum date for completion date (start date or publish date, whichever is later)
+  const getCompletionMinDate = () => {
+    if (startDate && bookPublishDate) {
+      return startDate > bookPublishDate ? startDate : bookPublishDate;
+    } else if (startDate) {
+      return startDate;
+    } else if (bookPublishDate) {
+      return bookPublishDate;
+    }
+    // Fallback if neither is available
+    const fallbackDate = new Date();
+    fallbackDate.setFullYear(fallbackDate.getFullYear() - 100);
+    return fallbackDate.toISOString().split("T")[0];
+  };
+
   // Reset dates when status changes
   useEffect(() => {
     if (status === "interested") {
       setStartDate("");
       setEndDate("");
     } else if (status === "reading") {
-      setStartDate(new Date().toISOString().split("T")[0]);
+      setStartDate(""); // Start date will be blank by default
       setEndDate("");
     } else if (status === "completed") {
-      if (!startDate) {
-        setStartDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
-      }
-      setEndDate(new Date().toISOString().split("T")[0]);
+      setStartDate(""); // Start date will be blank by default
+      setEndDate(getTodayDate()); // Finish date defaults to today
     }
   }, [status]);
 
@@ -194,6 +250,8 @@ export default function AddToReadingListButton({
                     className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 transition-all"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
+                    min={getMinDate()}
+                    max={getMaxDate()}
                   />
                 </div>
               )}
@@ -206,6 +264,8 @@ export default function AddToReadingListButton({
                     className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 transition-all"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
+                    min={getCompletionMinDate()}
+                    max={getMaxDate()}
                   />
                 </div>
               )}
