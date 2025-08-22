@@ -161,8 +161,51 @@ const updateComment = async (req, res) => {
   }
 };
 
+const deleteComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the comment
+    const comment = await Comment.findById(id);
+    if (!comment) {
+      return sendError(res, HTTP.NOT_FOUND, "Comment not found");
+    }
+
+    // Check if user is the owner
+    if (comment.user.toString() !== req.user._id.toString()) {
+      return sendError(res, HTTP.FORBIDDEN, "You can only delete your own comments");
+    }
+
+    // If it's a parent comment, find all its replies
+    let deletedCount = 1;
+    let message = "Comment deleted successfully";
+
+    if (!comment.parentComment) {
+      // This is a parent comment - delete all replies first
+      const replies = await Comment.find({ parentComment: id });
+      if (replies.length > 0) {
+        await Comment.deleteMany({ parentComment: id });
+        deletedCount += replies.length;
+        message = "Comment and its replies deleted successfully";
+      }
+    }
+
+    // Delete the comment itself
+    await Comment.findByIdAndDelete(id);
+
+    // Prepare response data
+    const responseData = deletedCount > 1 ? { deletedCount } : {};
+
+    return sendSuccess(res, HTTP.OK, message, responseData);
+  } catch (err) {
+    logError("Failed to delete comment", err);
+    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to delete comment");
+  }
+};
+
 export const CommentController = {
   getCommentsByDiscussion,
   createComment,
   updateComment,
+  deleteComment,
 };

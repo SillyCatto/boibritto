@@ -7,5 +7,6 @@ const commentRoute = express.Router();
 commentRoute.get("/:discussionId", verifyUser, CommentController.getCommentsByDiscussion);
 commentRoute.post("/", verifyUser, CommentController.createComment);
 commentRoute.patch("/:id", verifyUser, CommentController.updateComment);
+commentRoute.delete("/:id", verifyUser, CommentController.deleteComment);
 
 export default commentRoute;
