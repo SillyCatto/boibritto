@@ -39,6 +39,7 @@ import blogRouter from "./routes/blog.route.js";
 import readingListRouter from "./routes/readingList.route.js";
 import profileRouter from "./routes/profile.route.js";
 import discussionRouter from "./routes/discussion.route.js";
+import commentRouter from "./routes/comment.route.js";
 
 // use routes
 app.use("/api/auth", attachUser, authRouter);
@@ -47,6 +48,7 @@ app.use("/api/collections", verifyUser, collectionRouter);
 app.use("/api/blogs", verifyUser, blogRouter);
 app.use("/api/reading-list", verifyUser, readingListRouter);
 app.use("/api/discussions", verifyUser, discussionRouter);
+app.use("/api/comments", verifyUser, commentRouter);
 
 
 // setup adminjs

@@ -59,6 +59,7 @@ const addToReadingList = async (req, res) => {
       startedAt,
       completedAt,
       visibility = "public",
+      genres = [],
     } = data;
 
     if (!volumeId || !status) {
@@ -84,6 +85,9 @@ const addToReadingList = async (req, res) => {
       return sendError(res, HTTP.BAD_REQUEST, dateValidationError);
     }
 
+    // Normalize genres to lowercase for consistency
+    const normalizedGenres = genres.map(genre => genre.toLowerCase().trim());
+
     const newItem = new ReadingList({
       user: userId,
       volumeId,
@@ -91,6 +95,7 @@ const addToReadingList = async (req, res) => {
       startedAt,
       completedAt,
       visibility,
+      genres: normalizedGenres,
     });
 
     await newItem.save();
@@ -227,10 +232,47 @@ const deleteReadingListItem = async (req, res) => {
   }
 };
 
+const getRecommendations = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Aggregate genres from user's reading list
+    const genreStats = await ReadingList.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
+      { $unwind: "$genres" },
+      { $group: { _id: "$genres", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+
+    const topGenres = genreStats.map(item => ({
+      genre: item._id,
+      count: item.count
+    }));
+
+    return sendSuccess(
+      res,
+      HTTP.OK,
+      "Recommendations fetched successfully",
+      {
+        topGenres,
+      },
+    );
+  } catch (err) {
+    logError("Failed to fetch recommendations", err);
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to fetch recommendations",
+    );
+  }
+};
+
 export const ReadingListController = {
   getCurrentUserReadingList,
   getReadingListByID,
   addToReadingList,
   updateReadingListItem,
   deleteReadingListItem,
+  getRecommendations,
 };
