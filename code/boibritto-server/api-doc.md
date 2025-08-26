@@ -39,6 +39,7 @@ Ex-
 - #### [Discussions](#discussion-routes)
 - #### [Comments](#comment-routes)
 - #### [User Books](#user-books-routes)
+- #### [Reports](#report-routes)
 
 
 ---
@@ -2411,7 +2412,7 @@ Sample response:
             },
             {
                 "_id": "ch2",
-                "book": "book123", 
+                "book": "book123",
                 "author": {
                     "_id": "user123",
                     "username": "fantasywrites",
@@ -2628,6 +2629,123 @@ Sample response:
   }
 }
 ```
+
+---
+
+## Report Routes
+
+All report routes require Firebase authentication. Content flagging system allows users to report inappropriate content including discussions, comments, books, chapters, and other users.
+
+### Submit Report
+
+- **Endpoint**: `POST /reports`
+- **Description**: Submit a report for content or user
+- **Authentication**: Required
+- **Request Body**:
+  ```json
+  {
+    "targetType": "discussion",
+    "targetId": "discussion_id_here",
+    "reason": "spam",
+    "description": "Optional detailed description"
+  }
+  ```
+
+**Fields**:
+- `targetType` (required): Type of content being reported
+  - Allowed values: `discussion`, `comment`, `user`, `book`, `chapter`
+- `targetId` (required): ID of the content/user being reported
+- `reason` (required): Category of the report
+  - Allowed values: `spam`, `harassment`, `hate_speech`, `violence`, `adult_content`, `copyright_violation`, `misinformation`, `self_harm`, `bullying`, `impersonation`, `other`
+- `description` (optional): Additional details about the report (max 200 characters)
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Report submitted successfully",
+  "data": {
+    "reportId": "report_id_here",
+    "targetType": "discussion",
+    "targetId": "discussion_id_here",
+    "reason": "spam",
+    "description": "Optional detailed description",
+    "reportedBy": "user_id_here",
+    "status": "pending",
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Invalid target type, reason, or missing required fields
+- `404 Not Found`: Target content/user not found
+- `409 Conflict`: User has already reported this content
+- `401 Unauthorized`: Invalid or missing authentication token
+
+### Get User's Reports
+
+- **Endpoint**: `GET /reports/my-reports`
+- **Description**: Get all reports submitted by the authenticated user
+- **Authentication**: Required
+- **Query Parameters**:
+  - `page` (optional): Page number for pagination (default: 1)
+  - `limit` (optional): Number of reports per page (default: 10, max: 50)
+  - `status` (optional): Filter by report status (`pending`, `under_review`, `resolved`, `dismissed`)
+  - `targetType` (optional): Filter by target type (`discussion`, `comment`, `user`, `book`, `chapter`)
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Reports retrieved successfully",
+  "data": {
+    "reports": [
+      {
+        "_id": "report_id_here",
+        "targetType": "discussion",
+        "targetId": "discussion_id_here",
+        "reason": "spam",
+        "description": "Promotional content",
+        "status": "pending",
+        "createdAt": "2024-01-15T10:30:00.000Z",
+        "updatedAt": "2024-01-15T10:30:00.000Z"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 3,
+      "totalReports": 25,
+      "hasNextPage": true,
+      "hasPrevPage": false
+    }
+  }
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Invalid query parameters
+- `401 Unauthorized`: Invalid or missing authentication token
+
+### Report Status Tracking
+
+Users can track the status of their reports through the following statuses:
+- `pending`: Report has been submitted and is awaiting review
+- `under_review`: Report is being actively investigated by moderators
+- `resolved`: Report has been reviewed and appropriate action has been taken
+- `dismissed`: Report was reviewed but no action was deemed necessary
+
+### Duplicate Report Prevention
+
+The system prevents users from submitting multiple reports for the same content. Each user can only submit one report per target (combination of targetType and targetId).
+
+### Content Types Supported
+
+1. **Discussion Reports**: Report inappropriate forum discussions
+2. **Comment Reports**: Report spam or offensive comments
+3. **User Reports**: Report user profiles for violations
+4. **Book Reports**: Report user-published books for copyright or content violations
+5. **Chapter Reports**: Report specific book chapters for inappropriate content
 
 ---
 
