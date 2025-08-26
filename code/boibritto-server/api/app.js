@@ -41,6 +41,7 @@ import profileRouter from "./routes/profile.route.js";
 import discussionRouter from "./routes/discussion.route.js";
 import commentRouter from "./routes/comment.route.js";
 import reportRouter from "./routes/report.route.js";
+import userBookRouter from "./routes/userBook.route.js";
 
 // use routes
 app.use("/api/auth", attachUser, authRouter);
@@ -51,6 +52,7 @@ app.use("/api/reading-list", verifyUser, readingListRouter);
 app.use("/api/discussions", verifyUser, discussionRouter);
 app.use("/api/comments", verifyUser, commentRouter);
 app.use("/api/reports", verifyUser, reportRouter);
+app.use("/api/user-books", verifyUser, userBookRouter);
 
 // setup adminjs
 const { adminJS, router: adminRouter } = setupAdmin(app);
