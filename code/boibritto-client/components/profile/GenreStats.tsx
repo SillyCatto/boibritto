@@ -141,11 +141,35 @@ export default function GenreStats() {
     return () => unsubscribe();
   }, []);
 
+  // Add event listener for when books are added
+  useEffect(() => {
+    const handleBookAdded = () => {
+      // Refresh stats when a book is added
+      if (authInitialized) {
+        fetchStats();
+      }
+    };
+
+    // Listen for custom events that might be dispatched when books are added
+    window.addEventListener('bookAdded', handleBookAdded);
+    window.addEventListener('readingListUpdated', handleBookAdded);
+
+    return () => {
+      window.removeEventListener('bookAdded', handleBookAdded);
+      window.removeEventListener('readingListUpdated', handleBookAdded);
+    };
+  }, [authInitialized]);
+
   const fetchStats = async () => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      // Add cache busting to ensure fresh data
+      const timestamp = new Date().getTime();
       const response = await getRecommendations();
+      
+      console.log('Genre stats response:', response); // Debug log
       setStats(response.data);
     } catch (error: any) {
       console.error('Error fetching genre stats:', error);
@@ -157,6 +181,11 @@ export default function GenreStats() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Add manual refresh function
+  const handleRefresh = () => {
+    fetchStats();
   };
 
   // Break down genres into small tags and count them
@@ -222,7 +251,7 @@ export default function GenreStats() {
           <p className="text-gray-500 text-sm mb-2">Failed to load preferences</p>
           <p className="text-xs text-gray-400 mb-4">{error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={handleRefresh}
             className="px-4 py-2 bg-amber-700 text-white text-sm rounded-lg hover:bg-amber-800 transition-colors"
           >
             Retry
@@ -235,7 +264,15 @@ export default function GenreStats() {
   if (!stats || !stats.topGenres || stats.topGenres.length === 0) {
     return (
       <div className="bg-white border rounded-lg p-4">
-        <h3 className="font-medium text-amber-700 mb-2">Reading Preferences</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-medium text-amber-700">Reading Preferences</h3>
+          <button
+            onClick={handleRefresh}
+            className="text-xs text-amber-600 hover:text-amber-700 border border-amber-200 px-2 py-1 rounded"
+          >
+            Refresh
+          </button>
+        </div>
         <div className="text-center py-6">
           <div className="text-3xl mb-2">📚</div>
           <p className="text-gray-500 text-sm mb-1">No reading data yet</p>
@@ -252,10 +289,21 @@ export default function GenreStats() {
       <div className="bg-white border rounded-lg">
         {/* Header */}
         <div className="p-4 border-b bg-amber-50">
-          <h3 className="font-medium text-amber-700">Reading Preferences</h3>
-          <p className="text-xs text-amber-600 mt-0.5">
-            {stats.totalBooks} books • {tagStats.length} tags • {stats.topGenres.length} genres
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium text-amber-700">Reading Preferences</h3>
+              <p className="text-xs text-amber-600 mt-0.5">
+                {stats.totalBooks} books • {tagStats.length} tags • {stats.topGenres.length} genres
+              </p>
+            </div>
+            <button
+              onClick={handleRefresh}
+              className="text-xs text-amber-600 hover:text-amber-700 border border-amber-200 px-2 py-1 rounded"
+              title="Refresh data"
+            >
+              ↻ Refresh
+            </button>
+          </div>
         </div>
 
         <div className="p-4">
@@ -308,7 +356,7 @@ export default function GenreStats() {
             )}
           </div>
 
-          {/* Full Genres Section */}
+          {/* Full Genres Section - FIXED TO SHOW ALL GENRES */}
           <div className="pt-4 border-t">
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -323,9 +371,9 @@ export default function GenreStats() {
               </button>
             </div>
             
-            {/* Show first 5 genres */}
-            <div className="space-y-1">
-              {stats.topGenres.slice(0, 5).map((item, index) => (
+            {/* Show ALL genres - REMOVED .slice(0, 5) */}
+            <div className="space-y-1 max-h-80 overflow-y-auto">
+              {stats.topGenres.map((item, index) => (
                 <div key={item.genre} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400 w-4">{index + 1}</span>
@@ -338,16 +386,12 @@ export default function GenreStats() {
               ))}
             </div>
 
-            {stats.topGenres.length > 5 && (
-              <div className="mt-2 text-center">
-                <button
-                  onClick={() => setShowGenreModal(true)}
-                  className="text-xs text-gray-500 hover:text-gray-700"
-                >
-                  +{stats.topGenres.length - 5} more genres
-                </button>
-              </div>
-            )}
+            {/* Show total count */}
+            <div className="mt-3 text-center">
+              <p className="text-xs text-gray-500">
+                Showing all {stats.topGenres.length} genres from your collection
+              </p>
+            </div>
           </div>
         </div>
       </div>
