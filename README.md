@@ -172,7 +172,7 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 WEB_API_KEY=your_google_books_api_key
 
 # Server Configuration
-PORT=5000
+PORT=5001
 FRONTEND_URL=http://localhost:3000
 ```
 
@@ -187,7 +187,7 @@ cp .env.local.example .env.local
 
 **Configure Frontend Environment (.env.local):**
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_API_URL=http://localhost:5001/api
 NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_web_api_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
@@ -199,7 +199,7 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
 ```bash
 cd code/boibritto-server
 npm run dev
-# Server runs on http://localhost:5000
+# Server runs on http://localhost:5001
 ```
 
 #### Start Frontend Development Server
@@ -211,8 +211,8 @@ npm run dev
 
 ### 5. Access the Application
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000/api
-- **Admin Panel**: http://localhost:5000/admin
+- **Backend API**: http://localhost:5001/api
+- **Admin Panel**: http://localhost:5001/admin
 
 ---
 
