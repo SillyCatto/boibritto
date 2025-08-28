@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getRecommendations } from '@/lib/readingList';
 
 interface GenreStat {
@@ -122,23 +123,41 @@ export default function GenreStats() {
   const [error, setError] = useState<string | null>(null);
   const [showGenreModal, setShowGenreModal] = useState(false);
   const [showTagModal, setShowTagModal] = useState(false);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await getRecommendations();
-        setStats(response.data);
-      } catch (error: any) {
-        console.error('Error fetching genre stats:', error);
-        setError(error.message || 'Failed to load reading preferences');
-      } finally {
+    const auth = getAuth();
+    
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setAuthInitialized(true);
+      if (user) {
+        fetchStats();
+      } else {
+        setError('Please sign in to view your reading preferences');
         setIsLoading(false);
       }
-    };
-    fetchStats();
+    });
+
+    return () => unsubscribe();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await getRecommendations();
+      setStats(response.data);
+    } catch (error: any) {
+      console.error('Error fetching genre stats:', error);
+      if (error.message?.includes('not authenticated')) {
+        setError('Please sign in to view your reading preferences');
+      } else {
+        setError(error.message || 'Failed to load reading preferences');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Break down genres into small tags and count them
   const getTagStats = (): TagStat[] => {
@@ -172,7 +191,7 @@ export default function GenreStats() {
       .sort((a, b) => b.count - a.count);
   };
 
-  if (isLoading) {
+  if (!authInitialized || isLoading) {
     return (
       <div className="bg-white border rounded-lg p-4">
         <div className="animate-pulse">
@@ -195,8 +214,19 @@ export default function GenreStats() {
       <div className="bg-white border rounded-lg p-4">
         <h3 className="font-medium text-amber-700 mb-2">Reading Preferences</h3>
         <div className="text-center py-6">
-          <p className="text-gray-500 text-sm mb-1">Failed to load preferences</p>
-          <p className="text-xs text-gray-400">{error}</p>
+          <div className="text-red-500 mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <p className="text-gray-500 text-sm mb-2">Failed to load preferences</p>
+          <p className="text-xs text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-amber-700 text-white text-sm rounded-lg hover:bg-amber-800 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
