@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuth } from "firebase/auth";
+import { fetchBookDetails, extractGenres } from "@/lib/googleBooks";
 import axios from "axios";
 
 interface AddToReadingListButtonProps {
@@ -21,11 +22,79 @@ export default function AddToReadingListButton({
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [status, setStatus] = useState<"interested" | "reading" | "completed">("interested");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private" | "friends">("public");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [user, setUser] = useState<any>(null);
+  const [bookPublishDate, setBookPublishDate] = useState<string>("");
+
+  // Google auth listener
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = auth.onAuthStateChanged(currentUser => {
+      setUser(currentUser);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Fetch book data and set publish date when modal opens
+  useEffect(() => {
+    if (isModalOpen && bookId) {
+      const fetchBookData = async () => {
+        try {
+          const bookData = await fetchBookDetails(bookId);
+          if (bookData.publishedDate) {
+            // Parse various date formats and convert to YYYY-MM-DD
+            const publishDate = new Date(bookData.publishedDate);
+            if (!isNaN(publishDate.getTime())) {
+              setBookPublishDate(publishDate.toISOString().split("T")[0]);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch book publish date:", error);
+        }
+      };
+      fetchBookData();
+    }
+  }, [isModalOpen, bookId]);
+
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    return new Date().toISOString().split("T")[0];
+  };
+
+  // Helper function to get the minimum allowed date (publish date, or if not available, a reasonable past date)
+  const getMinDate = () => {
+    if (bookPublishDate) {
+      return bookPublishDate;
+    }
+    // If no publish date available, allow dates from 100 years ago
+    const fallbackDate = new Date();
+    fallbackDate.setFullYear(fallbackDate.getFullYear() - 100);
+    return fallbackDate.toISOString().split("T")[0];
+  };
+
+  // Helper function to get the maximum allowed date (today)
+  const getMaxDate = () => {
+    return getTodayDate();
+  };
+
+  // Helper function to get minimum date for completion date (start date or publish date, whichever is later)
+  const getCompletionMinDate = () => {
+    if (startDate && bookPublishDate) {
+      return startDate > bookPublishDate ? startDate : bookPublishDate;
+    } else if (startDate) {
+      return startDate;
+    } else if (bookPublishDate) {
+      return bookPublishDate;
+    }
+    // Fallback if neither is available
+    const fallbackDate = new Date();
+    fallbackDate.setFullYear(fallbackDate.getFullYear() - 100);
+    return fallbackDate.toISOString().split("T")[0];
+  };
 
   // Reset dates when status changes
   useEffect(() => {
@@ -33,77 +102,67 @@ export default function AddToReadingListButton({
       setStartDate("");
       setEndDate("");
     } else if (status === "reading") {
-      setStartDate(new Date().toISOString().split("T")[0]); // Today
+      setStartDate(""); // Start date will be blank by default
       setEndDate("");
     } else if (status === "completed") {
-      if (!startDate) {
-        setStartDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]); // 7 days ago
-      }
-      setEndDate(new Date().toISOString().split("T")[0]); // Today
+      setStartDate(""); // Start date will be blank by default
+      setEndDate(getTodayDate()); // Finish date defaults to today
     }
   }, [status]);
 
   const handleAddToReadingList = async () => {
+    if (!user) {
+      setError("Please sign in to add books to your reading list");
+      router.push("/signin");
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
 
     try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user) {
-        setError("Please sign in to add books to your reading list");
-        router.push("/signin");
-        return;
-      }
+      // Fetch book genres
+      const bookData = await fetchBookDetails(bookId);
+      const genres = extractGenres(bookData);
 
       const idToken = await user.getIdToken();
 
-      // Prepare request data based on status
       const requestData: any = {
         volumeId: bookId,
         status,
-        visibility
+        visibility,
+        genres
       };
 
-      // Add dates based on status requirements
       if (status === "reading" || status === "completed") {
         requestData.startedAt = startDate ? new Date(startDate).toISOString() : null;
       }
-
       if (status === "completed") {
         requestData.completedAt = endDate ? new Date(endDate).toISOString() : null;
       }
 
-      // Validate dates based on requirements
+      // Validate dates
       if ((status === "reading" || status === "completed") && !startDate) {
         setError("Start date is required for 'Reading' or 'Completed' status");
         setIsSubmitting(false);
         return;
       }
-
       if (status === "completed" && !endDate) {
         setError("Completion date is required for 'Completed' status");
         setIsSubmitting(false);
         return;
       }
-
       if (status === "completed" && new Date(endDate) < new Date(startDate)) {
         setError("Completion date cannot be earlier than start date");
         setIsSubmitting(false);
         return;
       }
 
-      // Send request to API
-      const response = await axios.post(
+      await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/reading-list`,
+        { data: requestData },
         {
-          data: requestData
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${idToken}`
-          },
+          headers: { Authorization: `Bearer ${idToken}` },
           withCredentials: true
         }
       );
@@ -112,15 +171,24 @@ export default function AddToReadingListButton({
       setIsModalOpen(false);
 
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.message ||
-        err?.message ||
-        "Failed to add book to reading list";
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to add book to reading list";
       setError(errorMessage);
       onError?.(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (!user) {
+    return (
+      <button
+        disabled
+        className="w-full mb-2 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed"
+      >
+        Sign in to add to reading list
+      </button>
+    );
+  }
 
   return (
     <>
@@ -131,7 +199,6 @@ export default function AddToReadingListButton({
         Add to Reading List
       </button>
 
-      {/* Reading List Modal */}
       {isModalOpen && (
         <div
           className="fixed inset-0 bg-amber-700/5 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -142,112 +209,85 @@ export default function AddToReadingListButton({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="bg-amber-50 rounded-t-lg px-6 py-4 border-b border-amber-100">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-amber-800">Add to Reading List</h3>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-1 rounded-full text-amber-500 hover:bg-amber-100"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                  </svg>
-                </button>
-              </div>
+            <div className="bg-amber-50 rounded-t-lg px-6 py-4 border-b border-amber-100 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-amber-800">Add to Reading List</h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-full text-amber-500 hover:bg-amber-100">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6">
+            <div className="p-6 space-y-5">
               {error && (
-                <div className="mb-5 p-3 bg-red-50 text-red-700 rounded-md border border-red-200 flex items-center">
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-3 bg-red-50 text-red-700 rounded-md border border-red-200 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
-                  <span>{error}</span>
+                  {error}
                 </div>
               )}
 
-              <div className="space-y-5">
-                {/* Reading Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Reading Status</label>
+                <select
+                  className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 transition-all"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as any)}
+                >
+                  <option value="interested">Interested</option>
+                  <option value="reading">Currently Reading</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              {(status === "reading" || status === "completed") && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reading Status
-                  </label>
-                  <div className="relative rounded-md shadow-sm">
-                    <select
-                      className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 transition-all"
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value as any)}
-                    >
-                      <option value="interested">Interested</option>
-                      <option value="reading">Currently Reading</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 transition-all"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    min={getMinDate()}
+                    max={getMaxDate()}
+                  />
                 </div>
+              )}
 
-                {/* Start Date - show if status is 'reading' or 'completed' */}
-                {(status === "reading" || status === "completed") && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Start Date
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 transition-all"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                    />
-                  </div>
-                )}
-
-                {/* End Date - show if status is 'completed' */}
-                {status === "completed" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Completion Date
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 transition-all"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                    />
-                  </div>
-                )}
-
-                {/* Visibility */}
+              {status === "completed" && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Visibility
-                  </label>
-                  <div className="relative rounded-md shadow-sm">
-                    <select
-                      className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 transition-all"
-                      value={visibility}
-                      onChange={(e) => setVisibility(e.target.value as any)}
-                    >
-                      <option value="public">Public - Everyone can see</option>
-                      <option value="private">Private - Only you can see</option>
-                    </select>
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Completion Date</label>
+                  <input
+                    type="date"
+                    className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 transition-all"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={getCompletionMinDate()}
+                    max={getMaxDate()}
+                  />
                 </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Visibility</label>
+                <select
+                  className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 transition-all"
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value as any)}
+                >
+                  <option value="public">Public - Everyone can see</option>
+                  <option value="private">Private - Only you can see</option>
+                  <option value="friends">Friends - Only friends can see</option>
+                </select>
               </div>
             </div>
 
             {/* Modal Footer */}
             <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 rounded-b-lg flex justify-end gap-3">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddToReadingList}
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800 transition-colors disabled:opacity-60"
-              >
+              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors">Cancel</button>
+              <button onClick={handleAddToReadingList} disabled={isSubmitting} className="px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800 transition-colors disabled:opacity-60">
                 {isSubmitting ? (
                   <span className="flex items-center">
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
