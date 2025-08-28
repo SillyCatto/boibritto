@@ -7,8 +7,12 @@ import Link from "next/link";
 import { fetchBookDetails } from "@/lib/googleBooks";
 import AddToCollectionButton from "@/components/book/AddToCollectionButton";
 import AddToReadingListButton from "@/components/book/AddToReadingListButton";
-import { auth } from "@/lib/googleAuth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { initFirebase } from "@/lib/googleAuth";
 import axios from "axios";
+
+// Initialize Firebase
+initFirebase();
 
 interface RecommendedBook {
   id: string;
@@ -76,6 +80,23 @@ export default function BookDetailPage() {
   const [loadingCollectionRecommendations, setLoadingCollectionRecommendations] = useState(false);
   const [hasReadingList, setHasReadingList] = useState(false);
   const [hasCollections, setHasCollections] = useState(false);
+  
+  // Auth state management
+  const [user, setUser] = useState<any>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
+
+  // Initialize Firebase Auth and listen for auth state changes
+  useEffect(() => {
+    const auth = getAuth();
+    
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log('Auth state changed:', firebaseUser?.uid || 'No user');
+      setUser(firebaseUser);
+      setAuthInitialized(true);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Fetch book details
   useEffect(() => {
@@ -156,125 +177,137 @@ export default function BookDetailPage() {
     fetchRecommendations();
   }, [book, id]);
 
+  // Fetch separate reading list and collection recommendations
+  useEffect(() => {
+    const fetchPersonalRecommendations = async () => {
+      if (!book || !authInitialized) return;
 
-// Fetch separate reading list and collection recommendations
-useEffect(() => {
-  const fetchPersonalRecommendations = async () => {
-    if (!book) return;
+      setLoadingReadingListRecommendations(true);
+      setLoadingCollectionRecommendations(true);
 
-    setLoadingReadingListRecommendations(true);
-    setLoadingCollectionRecommendations(true);
+      try {
+        // Check if user is authenticated
+        if (!user) {
+          console.log('No authenticated user found');
+          setHasReadingList(false);
+          setHasCollections(false);
+          setLoadingReadingListRecommendations(false);
+          setLoadingCollectionRecommendations(false);
+          return;
+        }
 
-    try {
-      // Check if user is authenticated
-      const user = auth.currentUser;
-      if (!user) {
-        setHasReadingList(false);
-        setHasCollections(false);
-        setLoadingReadingListRecommendations(false);
-        setLoadingCollectionRecommendations(false);
-        return;
-      }
+        console.log('Fetching personal recommendations for user:', user.uid);
+        const token = await user.getIdToken();
 
-      const token = await user.getIdToken();
+        // Fetch user's reading list and collections
+        const [readingListRes, collectionsRes] = await Promise.all([
+          axios.get(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/reading-list/me`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+              withCredentials: true,
+            }
+          ).catch((error) => {
+            console.error('Reading list API error:', error);
+            return { data: { success: false } };
+          }),
+          axios.get(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections?owner=me`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+              withCredentials: true,
+            }
+          ).catch((error) => {
+            console.error('Collections API error:', error);
+            return { data: { success: false } };
+          })
+        ]);
 
-      // Fetch user's reading list and collections
-      const [readingListRes, collectionsRes] = await Promise.all([
-        axios.get(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/reading-list/me`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            withCredentials: true,
-          }
-        ),
-        axios.get(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections?owner=me`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            withCredentials: true,
-          }
-        )
-      ]);
+        console.log('API responses:', {
+          readingList: readingListRes.data.success,
+          collections: collectionsRes.data.success
+        });
 
-      // --- READING LIST ---
-      const readingList: any[] = readingListRes.data.success ? readingListRes.data.data.readingList || [] : [];
-      // Only use items with a valid volumeId
-      const readingListBookIds = readingList.map(item => item.volumeId).filter(Boolean);
-      setHasReadingList(readingListBookIds.length > 0);
+        // --- READING LIST ---
+        const readingList: any[] = readingListRes.data.success ? readingListRes.data.data.readingList || [] : [];
+        const readingListBookIds = readingList.map(item => item.volumeId).filter(Boolean);
+        setHasReadingList(readingListBookIds.length > 0);
+        console.log('Reading list books:', readingListBookIds.length);
 
-      if (readingListBookIds.length > 0) {
-        // Exclude current book
-        const filteredReadingListIds = readingListBookIds.filter((bookId: string) => bookId !== id);
-        if (filteredReadingListIds.length > 0) {
-          const randomReadingListId = filteredReadingListIds[Math.floor(Math.random() * filteredReadingListIds.length)];
-          const randomBookDetails = await fetchBookDetails(randomReadingListId);
+        if (readingListBookIds.length > 0) {
+          const filteredReadingListIds = readingListBookIds.filter((bookId: string) => bookId !== id);
+          if (filteredReadingListIds.length > 0) {
+            const randomReadingListId = filteredReadingListIds[Math.floor(Math.random() * filteredReadingListIds.length)];
+            const randomBookDetails = await fetchBookDetails(randomReadingListId);
 
-          if (randomBookDetails.categories && randomBookDetails.categories.length > 0) {
-            const randomCategory = randomBookDetails.categories[Math.floor(Math.random() * randomBookDetails.categories.length)];
-            const readingListRecResponse = await fetch(
-              `https://www.googleapis.com/books/v1/volumes?q=subject:${encodeURIComponent(randomCategory)}&maxResults=5`
-            );
-            if (readingListRecResponse.ok) {
-              const data = await readingListRecResponse.json();
-              if (data.items) {
-                const readingListRecs = data.items
-                  .filter((item: any) => item.id !== id)
-                  .map((item: any) => ({ ...item, source: 'reading-list' as const }));
-                setReadingListRecommendations(readingListRecs);
+            if (randomBookDetails.categories && randomBookDetails.categories.length > 0) {
+              const randomCategory = randomBookDetails.categories[Math.floor(Math.random() * randomBookDetails.categories.length)];
+              const readingListRecResponse = await fetch(
+                `https://www.googleapis.com/books/v1/volumes?q=subject:${encodeURIComponent(randomCategory)}&maxResults=5`
+              );
+              if (readingListRecResponse.ok) {
+                const data = await readingListRecResponse.json();
+                if (data.items) {
+                  const readingListRecs = data.items
+                    .filter((item: any) => item.id !== id)
+                    .map((item: any) => ({ ...item, source: 'reading-list' as const }));
+                  setReadingListRecommendations(readingListRecs);
+                  console.log('Set reading list recommendations:', readingListRecs.length);
+                }
               }
             }
+          } else {
+            setReadingListRecommendations([]);
           }
         } else {
           setReadingListRecommendations([]);
         }
-      } else {
-        setReadingListRecommendations([]);
-      }
 
-      // --- COLLECTIONS ---
-      const collections: any[] = collectionsRes.data.success ? collectionsRes.data.data.collections || [] : [];
-      const allCollectionBooks = collections.flatMap((collection: any) =>
-        (collection.books || []).map((book: any) => book.volumeId)
-      ).filter(Boolean);
-      setHasCollections(allCollectionBooks.length > 0);
+        // --- COLLECTIONS ---
+        const collections: any[] = collectionsRes.data.success ? collectionsRes.data.data.collections || [] : [];
+        const allCollectionBooks = collections.flatMap((collection: any) =>
+          (collection.books || []).map((book: any) => book.volumeId)
+        ).filter(Boolean);
+        setHasCollections(allCollectionBooks.length > 0);
+        console.log('Collection books:', allCollectionBooks.length);
 
-      const filteredCollectionIds = allCollectionBooks.filter((bookId: string) => bookId !== id);
-      if (filteredCollectionIds.length > 0) {
-        const randomCollectionId = filteredCollectionIds[Math.floor(Math.random() * filteredCollectionIds.length)];
-        const randomBookDetails = await fetchBookDetails(randomCollectionId);
+        const filteredCollectionIds = allCollectionBooks.filter((bookId: string) => bookId !== id);
+        if (filteredCollectionIds.length > 0) {
+          const randomCollectionId = filteredCollectionIds[Math.floor(Math.random() * filteredCollectionIds.length)];
+          const randomBookDetails = await fetchBookDetails(randomCollectionId);
 
-        if (randomBookDetails.categories && randomBookDetails.categories.length > 0) {
-          const randomCategory = randomBookDetails.categories[Math.floor(Math.random() * randomBookDetails.categories.length)];
-          const collectionRecResponse = await fetch(
-            `https://www.googleapis.com/books/v1/volumes?q=subject:${encodeURIComponent(randomCategory)}&maxResults=5`
-          );
-          if (collectionRecResponse.ok) {
-            const data = await collectionRecResponse.json();
-            if (data.items) {
-              const collectionRecs = data.items
-                .filter((item: any) => item.id !== id && !readingListRecommendations.some(b => b.id === item.id))
-                .map((item: any) => ({ ...item, source: 'collection' as const }));
-              setCollectionRecommendations(collectionRecs);
+          if (randomBookDetails.categories && randomBookDetails.categories.length > 0) {
+            const randomCategory = randomBookDetails.categories[Math.floor(Math.random() * randomBookDetails.categories.length)];
+            const collectionRecResponse = await fetch(
+              `https://www.googleapis.com/books/v1/volumes?q=subject:${encodeURIComponent(randomCategory)}&maxResults=5`
+            );
+            if (collectionRecResponse.ok) {
+              const data = await collectionRecResponse.json();
+              if (data.items) {
+                const collectionRecs = data.items
+                  .filter((item: any) => item.id !== id && !readingListRecommendations.some(b => b.id === item.id))
+                  .map((item: any) => ({ ...item, source: 'collection' as const }));
+                setCollectionRecommendations(collectionRecs);
+                console.log('Set collection recommendations:', collectionRecs.length);
+              }
             }
           }
+        } else {
+          setCollectionRecommendations([]);
         }
-      } else {
+
+      } catch (error) {
+        console.error("Error fetching personal recommendations:", error);
+        setReadingListRecommendations([]);
         setCollectionRecommendations([]);
+      } finally {
+        setLoadingReadingListRecommendations(false);
+        setLoadingCollectionRecommendations(false);
       }
+    };
 
-    } catch (error) {
-      console.error("Error fetching personal recommendations:", error);
-      setReadingListRecommendations([]);
-      setCollectionRecommendations([]);
-    } finally {
-      setLoadingReadingListRecommendations(false);
-      setLoadingCollectionRecommendations(false);
-    }
-  };
-
-  fetchPersonalRecommendations();
-}, [book, id]);
-// ...existing code...
+    fetchPersonalRecommendations();
+  }, [book, id, user, authInitialized]);
 
   const handleCollectionSuccess = (message: string) => {
     setToast(message);
@@ -417,7 +450,11 @@ useEffect(() => {
                   </span>
                 </h2>
                 
-                {loadingReadingListRecommendations ? (
+                {!authInitialized ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700"></div>
+                  </div>
+                ) : loadingReadingListRecommendations ? (
                   <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700"></div>
                   </div>
@@ -451,10 +488,21 @@ useEffect(() => {
                   </div>
                 ) : (
                   <div className="bg-gray-50 p-8 text-center rounded-lg">
-                    <p className="text-gray-500">Nothing to show! Add books to your reading list for personalized recommendations.</p>
-                    <Link href="/reading-list" className="mt-4 inline-block text-amber-700 font-medium hover:underline">
-                      Go to Reading List
-                    </Link>
+                    <p className="text-gray-500">
+                      {!user ? 'Sign in to see personalized recommendations based on your reading list.' : 
+                       !hasReadingList ? 'Add books to your reading list for personalized recommendations.' : 
+                       'No recommendations available at the moment.'}
+                    </p>
+                    {user && !hasReadingList && (
+                      <Link href="/readingitems" className="mt-4 inline-block text-amber-700 font-medium hover:underline">
+                        Go to Reading List
+                      </Link>
+                    )}
+                    {!user && (
+                      <Link href="/signin" className="mt-4 inline-block text-amber-700 font-medium hover:underline">
+                        Sign In
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
@@ -470,7 +518,11 @@ useEffect(() => {
                   </span>
                 </h2>
                 
-                {loadingCollectionRecommendations ? (
+                {!authInitialized ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700"></div>
+                  </div>
+                ) : loadingCollectionRecommendations ? (
                   <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700"></div>
                   </div>
@@ -504,10 +556,21 @@ useEffect(() => {
                   </div>
                 ) : (
                   <div className="bg-gray-50 p-8 text-center rounded-lg">
-                    <p className="text-gray-500">Nothing to show! Create collections and add books for personalized recommendations.</p>
-                    <Link href="/collections" className="mt-4 inline-block text-amber-700 font-medium hover:underline">
-                      Go to Collections
-                    </Link>
+                    <p className="text-gray-500">
+                      {!user ? 'Sign in to see personalized recommendations based on your collections.' : 
+                       !hasCollections ? 'Create collections and add books for personalized recommendations.' : 
+                       'No recommendations available at the moment.'}
+                    </p>
+                    {user && !hasCollections && (
+                      <Link href="/collections" className="mt-4 inline-block text-amber-700 font-medium hover:underline">
+                        Go to Collections
+                      </Link>
+                    )}
+                    {!user && (
+                      <Link href="/signin" className="mt-4 inline-block text-amber-700 font-medium hover:underline">
+                        Sign In
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
