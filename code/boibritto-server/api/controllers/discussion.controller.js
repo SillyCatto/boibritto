@@ -35,7 +35,7 @@ const getDiscussions = async (req, res) => {
     }
 
     const discussions = await Discussion.find(filter)
-      .populate("user", "_id username displayName avatar")
+      .populate("user", "_id uid username displayName avatar")
       .select("_id user title visibility spoilerAlert genres createdAt updatedAt __v")
       .sort({ updatedAt: -1 })
       .limit(20);
@@ -55,7 +55,7 @@ const getDiscussionById = async (req, res) => {
     const { id } = req.params;
 
     const discussion = await Discussion.findById(id)
-      .populate("user", "_id username displayName avatar");
+      .populate("user", "_id uid username displayName avatar");
 
     if (!discussion) {
       return sendError(res, HTTP.NOT_FOUND, "Discussion not found or not accessible");
@@ -104,7 +104,7 @@ const createDiscussion = async (req, res) => {
       genres: validGenres
     });
 
-    await discussion.populate("user", "_id username displayName avatar");
+    await discussion.populate("user", "_id uid username displayName avatar");
 
     return sendSuccess(res, HTTP.CREATED, "Discussion created successfully", {
       discussion,
@@ -158,7 +158,7 @@ const updateDiscussion = async (req, res) => {
     }
 
     await discussion.save();
-    await discussion.populate("user", "_id username displayName avatar");
+    await discussion.populate("user", "_id uid username displayName avatar");
 
     return sendSuccess(res, HTTP.OK, "Discussion updated successfully", {
       discussion,

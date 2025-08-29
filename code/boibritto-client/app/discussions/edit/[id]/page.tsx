@@ -1,16 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
-import axios from "axios";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { initFirebase } from "@/lib/googleAuth";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/googleAuth";
+import { discussionsAPI, Discussion } from "@/lib/discussionAPI";
 import { GENRES } from "@/lib/constants";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-
-// Initialize Firebase
-initFirebase();
 
 // Dynamically import the markdown editor to avoid SSR issues
 const MDEditor = dynamic(
@@ -18,95 +14,94 @@ const MDEditor = dynamic(
   { ssr: false }
 );
 
-interface BlogFormData {
+interface DiscussionFormData {
   title: string;
   content: string;
   spoilerAlert: boolean;
   genres: string[];
-  visibility: "public" | "private" | "friends";
 }
 
-// Helper function to format genre names for display
-const formatGenreForDisplay = (genre: string): string => {
-  return genre
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
-export default function WriteBlogPage() {
-  const router = useRouter();
+export default function EditDiscussionPage() {
   const params = useParams();
-  const isEdit = Boolean(params?.id);
-  const blogId = params?.id as string;
+  const router = useRouter();
+  const [user, userLoading] = useAuthState(auth);
+  const discussionId = params.id as string;
 
-  const [formData, setFormData] = useState<BlogFormData>({
+  const [formData, setFormData] = useState<DiscussionFormData>({
     title: "",
     content: "",
     spoilerAlert: false,
     genres: [],
-    visibility: "public",
   });
+  const [originalDiscussion, setOriginalDiscussion] = useState<Discussion | null>(null);
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(isEdit);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Load existing blog for editing
+  // Load existing discussion
   useEffect(() => {
-    if (isEdit && blogId) {
-      const loadBlog = async () => {
-        try {
-          const auth = getAuth();
-          if (!auth.currentUser) {
-            router.push("/signin");
-            return;
-          }
-
-          const token = await auth.currentUser.getIdToken();
-          const response = await axios.get(
-            `${
-              process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"
-            }/api/blogs/${blogId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-              withCredentials: true,
-            }
-          );
-
-          if (response.data.success) {
-            const blog = response.data.data.blog;
-            setFormData({
-              title: blog.title,
-              content: blog.content,
-              spoilerAlert: blog.spoilerAlert || false,
-              genres: blog.genres || [],
-              visibility: blog.visibility,
-            });
-          } else {
-            setError("Failed to load blog");
-          }
-        } catch (error: unknown) {
-          console.error("Failed to load blog:", error);
-          setError("Failed to load blog");
-        } finally {
-          setInitialLoading(false);
+    const loadDiscussion = async () => {
+      try {
+        setInitialLoading(true);
+        const response = await discussionsAPI.getDiscussion(discussionId);
+        const discussion = response.discussion;
+        
+        // Check if user owns the discussion
+        if (user && user.uid !== discussion.user.uid) {
+          setError("You don't have permission to edit this discussion");
+          return;
         }
-      };
 
-      const auth = getAuth();
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          loadBlog();
-        } else {
-          router.push("/signin");
-        }
-      });
+        setOriginalDiscussion(discussion);
+        setFormData({
+          title: discussion.title,
+          content: discussion.content,
+          spoilerAlert: discussion.spoilerAlert,
+          genres: discussion.genres,
+        });
+      } catch (err) {
+        console.error("Failed to load discussion:", err);
+        setError("Failed to load discussion");
+      } finally {
+        setInitialLoading(false);
+      }
+    };
 
-      return () => unsubscribe();
+    if (user && discussionId) {
+      loadDiscussion();
+    } else if (!userLoading && !user) {
+      router.push("/signin");
     }
-  }, [isEdit, blogId, router]);
+  }, [user, userLoading, discussionId, router]);
+
+  if (userLoading || initialLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700"></div>
+      </div>
+    );
+  }
+
+  if (error || !originalDiscussion) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-sm p-8 text-center max-w-md">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
+          strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-red-400 mb-4">
+            <path strokeLinecap="round" strokeLinejoin="round" 
+            d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          <h3 className="text-xl font-medium text-gray-800 mb-2">Cannot edit discussion</h3>
+          <p className="text-gray-500 mb-6">
+            {error || "The discussion you're trying to edit doesn't exist or you don't have permission."}
+          </p>
+          <Link href="/discussions" className="text-amber-700 hover:text-amber-800 font-medium">
+            Back to discussions →
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -117,77 +112,37 @@ export default function WriteBlogPage() {
       return;
     }
 
+    if (formData.title.length > 100) {
+      setError("Title must be 100 characters or less");
+      return;
+    }
+
+    if (formData.content.length > 2000) {
+      setError("Content must be 2000 characters or less");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const auth = getAuth();
-      if (!auth.currentUser) {
-        setError("User not authenticated");
-        return;
-      }
-
-      const token = await auth.currentUser.getIdToken();
-
-      const requestData = {
-        data: {
-          title: formData.title.trim(),
-          content: formData.content.trim(),
-          spoilerAlert: formData.spoilerAlert,
-          genres: formData.genres,
-          visibility: formData.visibility,
-        },
+      const updateData = {
+        title: formData.title.trim(),
+        content: formData.content.trim(),
+        spoilerAlert: formData.spoilerAlert,
+        genres: formData.genres,
       };
 
-      let response;
-      if (isEdit) {
-        response = await axios.patch(
-          `${
-            process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"
-          }/api/blogs/${blogId}`,
-          requestData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            withCredentials: true,
-          }
-        );
+      const response = await discussionsAPI.updateDiscussion(discussionId, updateData);
+      
+      if (response.discussion) {
+        router.push(`/discussions/${response.discussion._id}`);
       } else {
-        response = await axios.post(
-          `${
-            process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"
-          }/api/blogs`,
-          requestData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            withCredentials: true,
-          }
-        );
-      }
-
-      if (response.data.success) {
-        const blogId = isEdit ? params.id : response.data.data.blog._id;
-        router.push(`/blogs/${blogId}`);
-      } else {
-        setError(
-          response.data.message ||
-            `Failed to ${isEdit ? "update" : "create"} blog`
-        );
+        setError("Failed to update discussion");
       }
     } catch (error: unknown) {
-      console.error(`Failed to ${isEdit ? "update" : "create"} blog:`, error);
-      const errorMessage =
-        (
-          error as {
-            response?: { data?: { message?: string } };
-            message?: string;
-          }
-        )?.response?.data?.message ||
-        (error as { message?: string })?.message ||
-        `Failed to ${isEdit ? "update" : "create"} blog`;
+      console.error("Failed to update discussion:", error);
+      const errorMessage = (error as { message?: string })?.message || "Failed to update discussion";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -204,23 +159,13 @@ export default function WriteBlogPage() {
     }));
   };
 
-  if (initialLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700"></div>
-      </div>
-    );
-  }
-
   return (
     <main className="bg-white text-gray-900 py-16 px-6 sm:px-10 min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isEdit ? "Edit Blog" : "Write New Blog"}
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Edit Discussion</h1>
           <Link
-            href="/my-blogs"
+            href={`/discussions/${discussionId}`}
             className="text-amber-700 hover:text-amber-800 flex items-center gap-1"
           >
             <svg
@@ -237,7 +182,7 @@ export default function WriteBlogPage() {
                 d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
               />
             </svg>
-            Back to My Blogs
+            Back to Discussion
           </Link>
         </div>
 
@@ -254,7 +199,7 @@ export default function WriteBlogPage() {
               htmlFor="title"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Blog Title *
+              Discussion Title *
             </label>
             <input
               type="text"
@@ -264,10 +209,13 @@ export default function WriteBlogPage() {
                 setFormData((prev) => ({ ...prev, title: e.target.value }))
               }
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-lg"
-              placeholder="Enter your blog title"
-              maxLength={200}
+              placeholder="What would you like to discuss?"
+              maxLength={100}
               required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.title.length}/100 characters
+            </p>
           </div>
 
           {/* Spoiler Alert */}
@@ -289,14 +237,14 @@ export default function WriteBlogPage() {
               </span>
             </label>
             <p className="text-xs text-gray-500 mt-1">
-              Check this if your blog contains spoilers
+              Check this if your discussion contains spoilers
             </p>
           </div>
 
           {/* Genres */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Genres (Select up to 5)
+              Related Genres (Optional)
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3">
               {GENRES.map((genre) => (
@@ -308,13 +256,11 @@ export default function WriteBlogPage() {
                     type="checkbox"
                     checked={formData.genres.includes(genre)}
                     onChange={() => handleGenreChange(genre)}
-                    disabled={
-                      !formData.genres.includes(genre) &&
-                      formData.genres.length >= 5
-                    }
-                    className="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 disabled:opacity-50"
+                    className="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500"
                   />
-                  <span className="text-sm text-gray-700">{formatGenreForDisplay(genre)}</span>
+                  <span className="text-sm text-gray-700">
+                    {genre.charAt(0).toUpperCase() + genre.slice(1).replace('-', ' ')}
+                  </span>
                 </label>
               ))}
             </div>
@@ -325,7 +271,7 @@ export default function WriteBlogPage() {
                     key={index}
                     className="inline-flex items-center px-3 py-1 bg-amber-100 text-amber-800 text-sm rounded-full"
                   >
-                    {formatGenreForDisplay(genre)}
+                    {genre.charAt(0).toUpperCase() + genre.slice(1).replace('-', ' ')}
                     <button
                       type="button"
                       onClick={() => handleGenreChange(genre)}
@@ -349,40 +295,10 @@ export default function WriteBlogPage() {
             )}
           </div>
 
-          {/* Visibility */}
-          <div>
-            <label
-              htmlFor="visibility"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Visibility
-            </label>
-            <select
-              id="visibility"
-              value={formData.visibility}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  visibility: e.target.value as
-                    | "public"
-                    | "private"
-                    | "friends",
-                }))
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            >
-              <option value="public">Public - Everyone can see</option>
-              <option value="friends">
-                Friends Only - Only your friends can see
-              </option>
-              <option value="private">Private - Only you can see</option>
-            </select>
-          </div>
-
           {/* Content Editor */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Content * (Markdown supported)
+              Discussion Content * (Markdown supported)
             </label>
             <div className="border border-gray-300 rounded-lg overflow-hidden">
               <MDEditor
@@ -396,12 +312,15 @@ export default function WriteBlogPage() {
                 data-color-mode="light"
               />
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.content.length}/2000 characters
+            </p>
           </div>
 
           {/* Submit Buttons */}
           <div className="flex gap-4 pt-6">
             <Link
-              href="/my-blogs"
+              href={`/discussions/${discussionId}`}
               className="px-6 py-3 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
@@ -416,7 +335,7 @@ export default function WriteBlogPage() {
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                  {isEdit ? "Updating..." : "Publishing..."}
+                  Updating...
                 </>
               ) : (
                 <>
@@ -431,10 +350,10 @@ export default function WriteBlogPage() {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.768 59.768 0 013.27 20.876L5.999 12zm0 0h7.5"
+                      d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
                     />
                   </svg>
-                  {isEdit ? "Update Blog" : "Publish Blog"}
+                  Update Discussion
                 </>
               )}
             </button>
