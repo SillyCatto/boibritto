@@ -8,6 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Comments } from "@/components/comments";
 
 export default function DiscussionDetailPage() {
   const params = useParams();
@@ -42,7 +43,10 @@ export default function DiscussionDetailPage() {
 
   // Handle delete
   const handleDelete = async () => {
-    if (!discussion || !window.confirm("Are you sure you want to delete this discussion?")) {
+    if (
+      !discussion ||
+      !window.confirm("Are you sure you want to delete this discussion?")
+    ) {
       return;
     }
 
@@ -65,16 +69,30 @@ export default function DiscussionDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-sm p-8 text-center max-w-md">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
-          strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-gray-400 mb-4">
-            <path strokeLinecap="round" strokeLinejoin="round" 
-            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className="w-12 h-12 mx-auto text-gray-400 mb-4"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
           </svg>
-          <h3 className="text-xl font-medium text-gray-800 mb-2">Sign in required</h3>
+          <h3 className="text-xl font-medium text-gray-800 mb-2">
+            Sign in required
+          </h3>
           <p className="text-gray-500 mb-6">
             You need to sign in to view discussions.
           </p>
-          <Link href="/signin" className="text-amber-700 hover:text-amber-800 font-medium">
+          <Link
+            href="/signin"
+            className="text-amber-700 hover:text-amber-800 font-medium"
+          >
             Sign in to continue →
           </Link>
         </div>
@@ -94,16 +112,31 @@ export default function DiscussionDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-sm p-8 text-center max-w-md">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
-          strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-red-400 mb-4">
-            <path strokeLinecap="round" strokeLinejoin="round" 
-            d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className="w-12 h-12 mx-auto text-red-400 mb-4"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+            />
           </svg>
-          <h3 className="text-xl font-medium text-gray-800 mb-2">Discussion not found</h3>
+          <h3 className="text-xl font-medium text-gray-800 mb-2">
+            Discussion not found
+          </h3>
           <p className="text-gray-500 mb-6">
-            {error || "The discussion you're looking for doesn't exist or you don't have permission to view it."}
+            {error ||
+              "The discussion you're looking for doesn't exist or you don't have permission to view it."}
           </p>
-          <Link href="/discussions" className="text-amber-700 hover:text-amber-800 font-medium">
+          <Link
+            href="/discussions"
+            className="text-amber-700 hover:text-amber-800 font-medium"
+          >
             Back to discussions →
           </Link>
         </div>
@@ -216,14 +249,16 @@ export default function DiscussionDetailPage() {
           )}
 
           {/* Title */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">{discussion.title}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            {discussion.title}
+          </h1>
 
           {/* Author and date info */}
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-3">
               <div className="relative h-12 w-12 rounded-full overflow-hidden">
-                <Image 
-                  src={discussion.user.avatar} 
+                <Image
+                  src={discussion.user.avatar}
                   alt={discussion.user.displayName}
                   fill
                   className="object-cover"
@@ -231,24 +266,30 @@ export default function DiscussionDetailPage() {
                 />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">{discussion.user.displayName}</h3>
-                <p className="text-gray-500 text-sm">@{discussion.user.username}</p>
+                <h3 className="font-medium text-gray-900">
+                  {discussion.user.displayName}
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  @{discussion.user.username}
+                </p>
               </div>
             </div>
             <div className="text-gray-400 text-sm">
               <p>
-                Created {new Date(discussion.createdAt).toLocaleDateString("en-US", {
+                Created{" "}
+                {new Date(discussion.createdAt).toLocaleDateString("en-US", {
                   month: "long",
                   day: "numeric",
-                  year: "numeric"
+                  year: "numeric",
                 })}
               </p>
               {discussion.updatedAt !== discussion.createdAt && (
                 <p>
-                  Updated {new Date(discussion.updatedAt).toLocaleDateString("en-US", {
+                  Updated{" "}
+                  {new Date(discussion.updatedAt).toLocaleDateString("en-US", {
                     month: "long",
                     day: "numeric",
-                    year: "numeric"
+                    year: "numeric",
                   })}
                 </p>
               )}
@@ -259,11 +300,12 @@ export default function DiscussionDetailPage() {
           {discussion.genres.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
               {discussion.genres.map((genre) => (
-                <span 
+                <span
                   key={genre}
                   className="bg-amber-50 text-amber-800 text-sm px-3 py-1 rounded-full"
                 >
-                  {genre.charAt(0).toUpperCase() + genre.slice(1).replace('-', ' ')}
+                  {genre.charAt(0).toUpperCase() +
+                    genre.slice(1).replace("-", " ")}
                 </span>
               ))}
             </div>
@@ -281,20 +323,12 @@ export default function DiscussionDetailPage() {
           </div>
         </div>
 
-        {/* Comments section placeholder */}
-        <div className="bg-white rounded-lg shadow-sm p-8 mt-8">
-          <div className="text-center py-12">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
-            strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 mx-auto text-gray-400 mb-4">
-              <path strokeLinecap="round" strokeLinejoin="round" 
-              d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
-            </svg>
-            <h3 className="text-xl font-medium text-gray-800 mb-2">Comments Coming Soon</h3>
-            <p className="text-gray-500 max-w-md mx-auto">
-              We're working on adding comment functionality to discussions. 
-              Soon you'll be able to share your thoughts and engage with other readers.
-            </p>
-          </div>
+        {/* Comments section */}
+        <div className="mt-8">
+          <Comments
+            discussionId={discussion._id}
+            discussionOwnerId={discussion.user.uid}
+          />
         </div>
       </div>
     </div>

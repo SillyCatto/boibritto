@@ -1793,6 +1793,7 @@ Sample response:
                 "discussion": "6847144261841477d982ac2f",
                 "user": {
                     "_id": "6843292c5cc2e9ee0b9bc0a9",
+                    "uid": "IaWR4mP5osYlOGI119Nathzu5Qx1",
                     "username": "bookworm",
                     "displayName": "BookWorm",
                     "avatar": "https://lh3.googleusercontent.com/..."
@@ -1808,6 +1809,7 @@ Sample response:
                         "discussion": "6847144261841477d982ac2f",
                         "user": {
                             "_id": "6843292c5cc2e9ee0b9bc0a9",
+                            "uid": "KxY8pN2mQ7TlPHK220BcthAv6Ry2",
                             "username": "scifireader",
                             "displayName": "SciFi Reader",
                             "avatar": "https://lh3.googleusercontent.com/..."
@@ -1899,6 +1901,7 @@ Sample response:
             "discussion": "6847144261841477d982ac2f",
             "user": {
                 "_id": "6843292c5cc2e9ee0b9bc0a9",
+                "uid": "IaWR4mP5osYlOGI119Nathzu5Qx1",
                 "username": "bookworm",
                 "displayName": "BookWorm",
                 "avatar": "https://lh3.googleusercontent.com/..."
@@ -1972,6 +1975,7 @@ Sample response:
             "discussion": "6847144261841477d982ac2f",
             "user": {
                 "_id": "6843292c5cc2e9ee0b9bc0a9",
+                "uid": "IaWR4mP5osYlOGI119Nathzu5Qx1",
                 "username": "bookworm",
                 "displayName": "BookWorm",
                 "avatar": "https://lh3.googleusercontent.com/..."
