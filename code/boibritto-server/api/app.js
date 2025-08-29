@@ -27,8 +27,6 @@ app.use(express.json());
 
 app.use(jsonErrorHandler);
 
-// Serve static files for AdminJS
-app.use(express.static("public"));
 
 // import routers
 import authRouter from "./routes/auth.route.js";
