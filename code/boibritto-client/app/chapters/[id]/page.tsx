@@ -8,7 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { chaptersAPI } from '@/lib/userBooksAPI';
 import { Chapter } from '@/lib/types/userBooks';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
 interface ChapterPageProps {
   params: Promise<{
@@ -19,7 +19,7 @@ interface ChapterPageProps {
 export default function ChapterPage({ params }: ChapterPageProps) {
   const router = useRouter();
   const resolvedParams = use(params);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [allChapters, setAllChapters] = useState<Chapter[]>([]);
@@ -337,14 +337,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
           </div>
         </div>
 
-        {/* Comments Section (Future Enhancement) */}
-        <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-6 mt-8">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Reader Comments</h3>
-          <div className="text-center py-8 text-gray-500">
-            <p>Comments feature coming soon!</p>
-            <p className="text-sm">Share your thoughts about this chapter with the author and other readers.</p>
-          </div>
-        </div>
+      
       </div>
     </div>
   );
