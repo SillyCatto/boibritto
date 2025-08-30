@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/googleAuth";
 import { discussionsAPI, Discussion } from "@/lib/discussionAPI";
+import { commentsAPI } from "@/lib/commentsAPI";
 import { GENRES } from "@/lib/constants";
 
 // Filter options - using the same genres from constants
@@ -18,6 +19,7 @@ export default function DiscussionsPage() {
   const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [commentCounts, setCommentCounts] = useState<{ [key: string]: number }>({});
 
   // Load discussions
   useEffect(() => {
@@ -30,6 +32,21 @@ export default function DiscussionsPage() {
         }
         const response = await discussionsAPI.getDiscussions(params);
         setDiscussions(response.discussions);
+        
+        // Load comment counts for each discussion
+        const counts: { [key: string]: number } = {};
+        await Promise.all(
+          response.discussions.map(async (discussion) => {
+            try {
+              const commentsResponse = await commentsAPI.getComments(discussion._id);
+              counts[discussion._id] = commentsResponse.comments?.length || 0;
+            } catch (error) {
+              console.error(`Failed to load comments for discussion ${discussion._id}:`, error);
+              counts[discussion._id] = 0;
+            }
+          })
+        );
+        setCommentCounts(counts);
       } catch (err) {
         console.error("Failed to load discussions:", err);
         setError("Failed to load discussions");
@@ -276,14 +293,27 @@ export default function DiscussionsPage() {
                       ))}
                     </div>
                     
-                    <div className="flex items-center space-x-4 text-gray-500">
-                      <span className="flex items-center space-x-1">
+                    {/* Only comment count - removed "Join discussion" part */}
+                    <div className="flex items-center text-gray-500">
+                      <span className="flex items-center space-x-2">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
                         strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                           <path strokeLinecap="round" strokeLinejoin="round" 
                           d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
                         </svg>
-                        <span>Comments coming soon</span>
+                        <span className="text-sm font-medium">
+                          {commentCounts[discussion._id] !== undefined ? (
+                            commentCounts[discussion._id] === 0 ? (
+                              '0 comments'
+                            ) : commentCounts[discussion._id] === 1 ? (
+                              '1 comment'
+                            ) : (
+                              `${commentCounts[discussion._id]} comments`
+                            )
+                          ) : (
+                            'Loading...'
+                          )}
+                        </span>
                       </span>
                     </div>
                   </div>
