@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, onAuthStateChanged , User } from 'firebase/auth';
 import UserDashboard from "@/components/profile/UserDashboard";
 import GenreStats from "@/components/profile/GenreStats";
 
 export default function ProfilePage() {
   const [authInitialized, setAuthInitialized] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const auth = getAuth();
