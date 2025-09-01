@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from 'react';
-import { reportsAPI, type ReportData } from '@/lib/reportsAPI';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -39,54 +40,96 @@ export default function ReportModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [firebaseToken, setFirebaseToken] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Directly set API URL to known port 5001
+  const apiUrl = 'http://localhost:5001';
+  
+  // Fetch Firebase token when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const auth = getAuth();
+      
+      // Get current user and token
+      const fetchToken = async () => {
+        try {
+          const currentUser = auth.currentUser;
+          
+          if (currentUser) {
+            const token = await currentUser.getIdToken(true); // Force refresh token
+            setFirebaseToken(token);
+            setIsAuthenticated(true);
+            console.log('🔐 Firebase auth: User is authenticated');
+          } else {
+            console.log('🔐 Firebase auth: No user is logged in');
+            setIsAuthenticated(false);
+            setFirebaseToken(null);
+            
+            // Try to get from localStorage as fallback
+            const storedToken = localStorage.getItem('token') || 
+                               localStorage.getItem('authToken') || 
+                               localStorage.getItem('firebaseToken');
+            
+            if (storedToken) {
+              setFirebaseToken(storedToken);
+              setIsAuthenticated(true);
+              console.log('🔐 Found token in localStorage');
+            }
+          }
+        } catch (error) {
+          console.error('🔐 Error getting Firebase token:', error);
+        }
+      };
 
-  // Debug logging when modal opens
-  if (isOpen) {
-    console.log('🚩 ReportModal Debug - Props received:', {
-      targetType,
-      targetId,
-      targetTitle,
-      targetIdExists: !!targetId,
-      targetIdLength: targetId?.length,
-      targetTypeValid: ['discussion', 'comment', 'user', 'book', 'chapter'].includes(targetType)
-    });
-  }
+      fetchToken();
+      
+      // Listen for auth state changes
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          user.getIdToken().then(token => {
+            setFirebaseToken(token);
+            setIsAuthenticated(true);
+          });
+        } else {
+          setIsAuthenticated(false);
+          setFirebaseToken(null);
+        }
+      });
+      
+      return () => unsubscribe();
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     console.log('🚩 FORM SUBMIT TRIGGERED');
-    console.log('🚩 Current selectedReason state:', selectedReason);
-    console.log('🚩 Current description state:', description);
     
-    console.log('🚩 ReportModal - Form submission started');
+    // Check authentication first
+    if (!isAuthenticated || !firebaseToken) {
+      setError('Authentication required to report content. Please sign in.');
+      return;
+    }
     
-    // Detailed pre-validation with debug output
-    console.log('🚩 Validation Debug:', {
-      selectedReasonProvided: !!selectedReason,
-      selectedReasonValue: selectedReason,
-      targetIdProvided: !!targetId,
-      targetIdValue: targetId,
-      targetIdType: typeof targetId,
-      targetTypeProvided: !!targetType,
-      targetTypeValue: targetType,
-      allFieldsPresent: !!selectedReason && !!targetId && !!targetType
-    });
-    
+    // Validation - ensure all required fields are present and correct
     if (!selectedReason) {
-      console.log('❌ Validation failed: No reason selected');
       setError('Please select a reason for reporting');
       return;
     }
 
-    if (!targetType) {
-      console.log('❌ Validation failed: No target type');
-      setError('Target type is required');
+    if (!targetType || (
+      targetType !== 'discussion' && 
+      targetType !== 'comment' && 
+      targetType !== 'user' && 
+      targetType !== 'book' && 
+      targetType !== 'chapter'
+    )) {
+      setError('Valid target type is required');
       return;
     }
 
-    if (!targetId) {
-      console.log('❌ Validation failed: No target ID');
+    if (!targetId || targetId.trim() === '') {
       setError('Target ID is required');
       return;
     }
@@ -100,25 +143,30 @@ export default function ReportModal({
     setError('');
 
     try {
+      // Create the payload according to the API documentation
       const reportData = {
         targetType: targetType,
-        targetId: targetId,
+        targetId: targetId.trim(),
         reason: selectedReason,
-        ...(description.trim() && { description: description.trim() })
+        description: description.trim() || undefined // Only include if not empty
       };
       
-      console.log('🚩 Final report data being submitted:', JSON.stringify(reportData, null, 2));
-      console.log('🚩 Report data validation before API call:', {
-        hasTargetType: !!reportData.targetType,
-        hasTargetId: !!reportData.targetId,
-        hasReason: !!reportData.reason,
-        targetTypeValue: reportData.targetType,
-        targetIdValue: reportData.targetId,
-        reasonValue: reportData.reason
+      console.log('🚩 Sending report data:', JSON.stringify(reportData, null, 2));
+      console.log('🚩 API endpoint:', `${apiUrl}/api/reports`);
+      
+      // Use axios for the API call
+      const response = await axios({
+        method: 'post',
+        url: `${apiUrl}/api/reports`,
+        data: reportData,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${firebaseToken}`
+        },
+        timeout: 10000 // 10 seconds timeout
       });
       
-      await reportsAPI.submitReport(reportData);
-      console.log('✅ Report submitted successfully');
+      console.log('✅ Report submitted successfully:', response.data);
       
       setSuccess(true);
       setTimeout(() => {
@@ -130,22 +178,81 @@ export default function ReportModal({
     } catch (err: unknown) {
       console.error('❌ Report submission failed with error:', err);
       
-      // Enhanced error handling
-      if (err instanceof Error) {
-        console.log('❌ Error message:', err.message);
-        if (err.message.includes('required')) {
-          setError('Server says required fields are missing. Check console for details.');
-        } else if (err.message.includes('authentication')) {
-          setError('Please sign in to report content');
+      // Enhanced error handling for axios errors
+      if (axios.isAxiosError(err)) {
+        console.log('❌ Axios error details:', {
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          message: err.message,
+          code: err.code
+        });
+        
+        // Get detailed error message from response
+        const errorMessage = err.response?.data?.message || err.message;
+        
+        if (err.response?.status === 400) {
+          // Handle specific validation errors
+          if (errorMessage.includes('required')) {
+            setError('All required fields must be provided: Report type, target ID, and reason');
+          } else {
+            setError(errorMessage || 'Invalid data. Please check all fields');
+          }
+        } else if (err.response?.status === 404) {
+          setError('Content not found or no longer available');
+        } else if (err.response?.status === 409) {
+          setError('You have already reported this content');
+        } else if (err.response?.status === 401 || err.response?.status === 403) {
+          // Try to refresh the token
+          try {
+            const auth = getAuth();
+            const currentUser = auth.currentUser;
+            if (currentUser) {
+              const newToken = await currentUser.getIdToken(true); // Force refresh
+              setFirebaseToken(newToken);
+              setError('Your session was refreshed. Please try again.');
+            } else {
+              setError('Please sign in to report content');
+              setIsAuthenticated(false);
+            }
+          } catch (refreshError) {
+            setError('Authentication failed. Please sign in again to report content');
+            setIsAuthenticated(false);
+          }
+        } else if (err.code === 'ECONNABORTED') {
+          setError('Request timed out. Please try again.');
+        } else if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) {
+          setError(`Cannot connect to server at ${apiUrl}. Please verify the server is running on port 5001.`);
         } else {
-          setError(err.message);
+          setError(errorMessage || 'Failed to submit report');
         }
+      } else if (err instanceof Error) {
+        console.log('❌ Standard error:', err.message);
+        setError(err.message);
       } else {
         console.log('❌ Unknown error type:', typeof err, err);
         setError('Failed to submit report. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Debugging function - test API connection
+  const testConnection = async () => {
+    try {
+      console.log('🧪 Testing API connection to:', apiUrl);
+      const response = await axios.get(`${apiUrl}/api/health`, {
+        timeout: 3000
+      });
+      console.log('🧪 Health check response:', response.status, response.statusText);
+      console.log('🧪 Health check data:', response.data);
+      setError(`Server at ${apiUrl} is reachable`);
+      return true;
+    } catch (error) {
+      console.error('🧪 Health check failed:', error);
+      setError(`Cannot connect to server at ${apiUrl}. Make sure it's running on port 5001.`);
+      return false;
     }
   };
 
@@ -195,6 +302,44 @@ export default function ReportModal({
               Thank you for helping keep our community safe. We&apos;ll review your report shortly.
             </p>
           </div>
+        ) : !isAuthenticated ? (
+          <div className="p-6 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
+              <svg
+                className="w-8 h-8 text-amber-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Authentication Required
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Please sign in to report content. Creating an account helps us prevent abuse and verify reports.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleClose}
+                className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <a
+                href="/signin?redirect=back"
+                className="flex-1 px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition-colors font-medium text-center"
+              >
+                Sign In
+              </a>
+            </div>
+          </div>
         ) : (
           <>
             {/* Header */}
@@ -225,19 +370,31 @@ export default function ReportModal({
                   <p className="text-sm text-amber-800">
                     <span className="font-medium">Reporting:</span> {targetTitle}
                   </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    ID: {targetId}
+                  </p>
                 </div>
               )}
 
               {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm text-red-600">{error}</p>
+                  {error.includes('server') && (
+                    <button
+                      type="button"
+                      onClick={() => testConnection()}
+                      className="mt-2 text-xs text-blue-600 underline"
+                    >
+                      Test connection to {apiUrl}
+                    </button>
+                  )}
                 </div>
               )}
 
               {/* Reason Selection */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Why are you reporting this {targetType}?
+                  Why are you reporting this {targetType}? *
                 </label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {REPORT_REASONS.map((reason) => (
@@ -251,8 +408,8 @@ export default function ReportModal({
                         value={reason.value}
                         checked={selectedReason === reason.value}
                         onChange={(e) => {
-                          console.log('🚩 Reason selected:', e.target.value);
-                          setSelectedReason(e.target.value as ReportData['reason']);
+                          setSelectedReason(e.target.value as ReasonValue);
+                          console.log('Selected reason:', e.target.value);
                         }}
                         className="mt-1 text-amber-600 focus:ring-amber-500"
                         disabled={isSubmitting}
