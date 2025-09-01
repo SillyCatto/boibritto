@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Upload, Book, Eye, EyeOff, Save, Trash2 } from 'lucide-react';
@@ -9,13 +9,14 @@ import { UserBook, UpdateUserBookData } from '@/lib/types/userBooks';
 import { GENRES } from '@/lib/constants';
 
 interface EditBookPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function EditBookPage({ params }: EditBookPageProps) {
   const router = useRouter();
+  const resolvedParams = use(params);
   const [book, setBook] = useState<UserBook | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -33,11 +34,11 @@ export default function EditBookPage({ params }: EditBookPageProps) {
 
   useEffect(() => {
     fetchBook();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   const fetchBook = async () => {
     try {
-      const { book: bookData } = await userBooksAPI.getUserBook(params.id);
+      const { book: bookData } = await userBooksAPI.getUserBook(resolvedParams.id);
       setBook(bookData);
       setFormData({
         title: bookData.title,
@@ -90,7 +91,7 @@ export default function EditBookPage({ params }: EditBookPageProps) {
         coverImage: coverImageUrl,
       };
 
-      const { book: updatedBook } = await userBooksAPI.updateUserBook(params.id, bookData);
+      const { book: updatedBook } = await userBooksAPI.updateUserBook(resolvedParams.id, bookData);
       router.push(`/books/${updatedBook._id}`);
     } catch (error: any) {
       console.error('Error updating book:', error);
@@ -121,7 +122,7 @@ export default function EditBookPage({ params }: EditBookPageProps) {
 
   const handleDelete = async () => {
     try {
-      await userBooksAPI.deleteUserBook(params.id);
+      await userBooksAPI.deleteUserBook(resolvedParams.id);
       router.push('/books');
     } catch (error) {
       console.error('Error deleting book:', error);

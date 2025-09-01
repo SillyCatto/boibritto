@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save, Eye, EyeOff, BookOpen } from 'lucide-react';
@@ -9,18 +9,19 @@ import { chaptersAPI, userBooksAPI } from '@/lib/userBooksAPI';
 import { CreateChapterData, UserBook } from '@/lib/types/userBooks';
 
 interface CreateChapterPageProps {
-  params: {
+  params: Promise<{
     id: string; // book ID
-  };
+  }>;
 }
 
 export default function CreateChapterPage({ params }: CreateChapterPageProps) {
   const router = useRouter();
+  const resolvedParams = use(params);
   const searchParams = useSearchParams();
   const [book, setBook] = useState<UserBook | null>(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CreateChapterData>({
-    bookId: params.id,
+    bookId: resolvedParams.id,
     title: '',
     content: '',
     chapterNumber: parseInt(searchParams.get('number') || '1'),
@@ -31,7 +32,7 @@ export default function CreateChapterPage({ params }: CreateChapterPageProps) {
 
   useEffect(() => {
     fetchBook();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   useEffect(() => {
     // Calculate word count
@@ -44,7 +45,7 @@ export default function CreateChapterPage({ params }: CreateChapterPageProps) {
 
   const fetchBook = async () => {
     try {
-      const { book } = await userBooksAPI.getUserBook(params.id);
+      const { book } = await userBooksAPI.getUserBook(resolvedParams.id);
       setBook(book);
 
       // Set default visibility based on book visibility
@@ -174,7 +175,7 @@ export default function CreateChapterPage({ params }: CreateChapterPageProps) {
                     height={500}
                     preview="edit"
                     hideToolbar={false}
-                    visibleDragBar={false}
+                    visibleDragbar={false}
                   />
                 </div>
                 <div className="flex justify-between items-center mt-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save, Eye, EyeOff, BookOpen, Trash2 } from 'lucide-react';
@@ -9,13 +9,14 @@ import { chaptersAPI } from '@/lib/userBooksAPI';
 import { Chapter, UpdateChapterData } from '@/lib/types/userBooks';
 
 interface EditChapterPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function EditChapterPage({ params }: EditChapterPageProps) {
   const router = useRouter();
+  const resolvedParams = use(params);
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -30,11 +31,11 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
 
   useEffect(() => {
     fetchChapter();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   useEffect(() => {
     // Calculate word count
-    const count = formData.content
+    const count = (formData.content || '')
       .trim()
       .split(/\s+/)
       .filter(word => word.length > 0).length;
@@ -43,7 +44,7 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
 
   const fetchChapter = async () => {
     try {
-      const { chapter: chapterData } = await chaptersAPI.getChapter(params.id);
+      const { chapter: chapterData } = await chaptersAPI.getChapter(resolvedParams.id);
       setChapter(chapterData);
       setFormData({
         title: chapterData.title,
@@ -84,7 +85,7 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
 
     try {
       setLoading(true);
-      const { chapter: updatedChapter } = await chaptersAPI.updateChapter(params.id, formData);
+      const { chapter: updatedChapter } = await chaptersAPI.updateChapter(resolvedParams.id, formData);
       router.push(`/chapters/${updatedChapter._id}`);
     } catch (error: any) {
       console.error('Error updating chapter:', error);
@@ -98,7 +99,7 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
 
   const handleDelete = async () => {
     try {
-      await chaptersAPI.deleteChapter(params.id);
+      await chaptersAPI.deleteChapter(resolvedParams.id);
       const book = typeof chapter?.book === 'object' ? chapter.book : null;
       router.push(book ? `/books/${book._id}` : '/books');
     } catch (error) {
@@ -210,7 +211,7 @@ export default function EditChapterPage({ params }: EditChapterPageProps) {
                     height={500}
                     preview="edit"
                     hideToolbar={false}
-                    visibleDragBar={false}
+                    visibleDragbar={false}
                   />
                 </div>
                 <div className="flex justify-between items-center mt-2">

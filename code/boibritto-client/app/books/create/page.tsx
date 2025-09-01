@@ -11,6 +11,7 @@ import { GENRES } from '@/lib/constants';
 export default function CreateBookPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState<CreateUserBookData>({
     title: '',
     synopsis: '',
@@ -48,7 +49,18 @@ export default function CreateBookPage() {
       // Upload cover image if selected
       let coverImageUrl = formData.coverImage;
       if (coverImageFile) {
-        coverImageUrl = await uploadCoverImage(coverImageFile);
+        try {
+          setUploadingImage(true);
+          console.log('Starting cover image upload...');
+          coverImageUrl = await uploadCoverImage(coverImageFile);
+          console.log('Cover image uploaded successfully!');
+        } catch (uploadError: any) {
+          console.error('Error uploading cover image:', uploadError);
+          setErrors({ general: uploadError.message || 'Failed to upload cover image' });
+          return;
+        } finally {
+          setUploadingImage(false);
+        }
       }
 
       const bookData: CreateUserBookData = {
@@ -62,7 +74,7 @@ export default function CreateBookPage() {
       router.push(`/books/${book._id}`);
     } catch (error: any) {
       console.error('Error creating book:', error);
-      setErrors({ general: error.response?.data?.message || 'Failed to create book' });
+      setErrors({ general: error.message || error.response?.data?.message || 'Failed to create book' });
     } finally {
       setLoading(false);
     }
@@ -80,6 +92,12 @@ export default function CreateBookPage() {
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check file size and show warning for large files
+      const fileSizeMB = file.size / 1024 / 1024;
+      if (fileSizeMB > 5) {
+        console.warn(`Large file selected: ${fileSizeMB.toFixed(2)}MB. This will be compressed during upload.`);
+      }
+      
       setCoverImageFile(file);
       // Create preview URL
       const previewUrl = URL.createObjectURL(file);
@@ -260,6 +278,16 @@ export default function CreateBookPage() {
                   </div>
                 </label>
 
+                {coverImageFile && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    <p>File: {coverImageFile.name}</p>
+                    <p>Size: {(coverImageFile.size / 1024 / 1024).toFixed(2)}MB</p>
+                    {coverImageFile.size > 5 * 1024 * 1024 && (
+                      <p className="text-amber-600">⚡ Large file will be compressed for faster upload</p>
+                    )}
+                  </div>
+                )}
+
                 <p className="text-xs text-gray-500 mt-2">
                   Recommended: 400x600px, JPG or PNG
                 </p>
@@ -278,13 +306,18 @@ export default function CreateBookPage() {
 
             <button
               type="submit"
-              disabled={loading || !formData.title.trim()}
+              disabled={loading || uploadingImage || !formData.title.trim()}
               className="flex items-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? (
+              {uploadingImage ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Creating...
+                  Uploading Image...
+                </>
+              ) : loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Creating Book...
                 </>
               ) : (
                 <>
