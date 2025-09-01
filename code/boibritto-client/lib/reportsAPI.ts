@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001';
 
 export interface ReportData {
-  targetType: 'discussion' | 'comment' | 'user' | 'blog' | 'chapter';
+  targetType: 'discussion' | 'comment' | 'user' | 'book' | 'chapter';
   targetId: string;
   reason: 'spam' | 'harassment' | 'hate_speech' | 'violence' | 'adult_content' | 'copyright_violation' | 'misinformation' | 'self_harm' | 'bullying' | 'impersonation' | 'other';
   description?: string;
@@ -57,15 +57,23 @@ export const reportsAPI = {
   submitReport: async (reportData: ReportData) => {
     try {
       const headers = await getAuthHeaders();
+      console.log('Submitting report to:', `${API_BASE_URL}/api/reports`);
+      console.log('Report data:', reportData);
+      console.log('Headers:', headers);
+      
       const response = await axios.post(
         `${API_BASE_URL}/api/reports`,
         reportData,
-        { headers }
+        { headers, withCredentials: true }
       );
+      console.log('Report submission response:', response.data);
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string }; status?: number }; message?: string };
       console.error('Error submitting report:', error);
-      throw new Error(error.response?.data?.message || 'Failed to submit report');
+      console.error('Error response data:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      throw new Error(err.response?.data?.message || 'Failed to submit report');
     }
   },
 
@@ -87,12 +95,13 @@ export const reportsAPI = {
       
       const response = await axios.get(
         `${API_BASE_URL}/api/reports/my-reports?${queryParams.toString()}`,
-        { headers }
+        { headers, withCredentials: true }
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
       console.error('Error fetching reports:', error);
-      throw new Error(error.response?.data?.message || 'Failed to fetch reports');
+      throw new Error(err.response?.data?.message || 'Failed to fetch reports');
     }
   },
 };
