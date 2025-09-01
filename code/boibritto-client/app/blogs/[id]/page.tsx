@@ -10,6 +10,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
+import ReportModal from "@/components/ui/ReportModal";
 
 // Initialize Firebase
 initFirebase();
@@ -42,6 +43,7 @@ export default function BlogViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     if (blogId) {
@@ -207,9 +209,34 @@ export default function BlogViewPage() {
               </div>
             </div>
 
-            {/* Edit/Delete buttons for author */}
-            {isAuthor && (
-              <div className="flex items-center gap-2">
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              {/* Report button - only show if not author and user is logged in */}
+              {currentUser && !isAuthor && (
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                  title="Report this blog"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-5 h-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 3l1.664 6L3 15l13.333-6L3 3z"
+                    />
+                  </svg>
+                </button>
+              )}
+
+              {/* Edit/Delete buttons for author */}
+              {isAuthor && (
                 <Link
                   href={`/blogs/write?id=${blog._id}`}
                   className="p-2 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded-md transition-colors"
@@ -230,8 +257,8 @@ export default function BlogViewPage() {
                     />
                   </svg>
                 </Link>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Genres and Spoiler Alert */}
@@ -388,6 +415,17 @@ export default function BlogViewPage() {
           </Link>
         </div>
       </div>
+
+      {/* Report Modal */}
+      {blog && (
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          targetType="blog"
+          targetId={blog._id}
+          targetTitle={blog.title}
+        />
+      )}
     </div>
   );
 }
