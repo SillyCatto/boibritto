@@ -81,6 +81,10 @@ export default function ReportModal({
 
     try {
       const token = await auth.currentUser.getIdToken();
+      if (!token) {
+        setError('Unable to authenticate. Please sign in again.');
+        return;
+      }
       
       // Use reportType to match backend controller
       const reportData = {
@@ -90,17 +94,22 @@ export default function ReportModal({
         ...(description.trim() && { description: description.trim() })
       };
       
+      console.log('Submitting report with data:', reportData);
+      console.log('API URL:', `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/reports`);
+      
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/reports`,
         reportData,
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
           },
           withCredentials: true
         }
       );
+      
+      console.log('Report response:', response.data);
       
       if (response.data.success) {
         setSuccess(true);
@@ -114,11 +123,12 @@ export default function ReportModal({
       
     } catch (err: any) {
       console.error('Failed to submit report:', err);
+      console.error('Error response:', err.response?.data);
       
       if (err.response?.status === 400) {
         setError(err.response.data?.message || 'Invalid data. Please check all fields');
       } else if (err.response?.status === 404) {
-        setError(`The ${targetType} you're trying to report was not found.`);
+        setError(`The ${targetType} you're trying to report was not found. (ID: ${targetId})`);
       } else if (err.response?.status === 409) {
         setError('You have already reported this content');
       } else if (err.response?.status === 401) {

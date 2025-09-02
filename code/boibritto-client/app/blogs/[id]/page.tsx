@@ -426,7 +426,7 @@ export default function BlogViewPage() {
         <ReportModal
           isOpen={showReportModal}
           onClose={() => setShowReportModal(false)}
-          targetType="discussion"
+          targetType="blog"
           targetId={blogId || ""}
           targetTitle={blog?.title}
         />
