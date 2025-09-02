@@ -372,16 +372,18 @@ export default function DiscussionDetailPage() {
             </Link>
 
             <div className="flex items-center gap-2">
-              {/* Link Book Button - Boibritto themed */}
-              <button
-                onClick={() => setShowBookSearch(!showBookSearch)}
-                className="px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition-colors flex items-center gap-2 font-medium shadow-sm"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                </svg>
-                Link Book
-              </button>
+              {/* Link Book Button - Only for discussion owner */}
+              {isOwner && (
+                <button
+                  onClick={() => setShowBookSearch(!showBookSearch)}
+                  className="px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition-colors flex items-center gap-2 font-medium shadow-sm"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                  </svg>
+                  Link Book
+                </button>
+              )}
 
               {isOwner && (
                 <>
@@ -435,8 +437,8 @@ export default function DiscussionDetailPage() {
             </div>
           </div>
 
-          {/* Book Search Modal - Boibritto themed */}
-          {showBookSearch && (
+          {/* Book Search Modal - Only for discussion owner */}
+          {isOwner && showBookSearch && (
             <div className="mb-6 p-6 bg-amber-50 border-2 border-amber-200 rounded-lg shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-amber-700">
