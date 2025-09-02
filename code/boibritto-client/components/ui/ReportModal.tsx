@@ -28,6 +28,11 @@ const REPORT_REASONS = [
 
 type ReasonValue = typeof REPORT_REASONS[number]['value'];
 
+// Valid MongoDB ObjectId regex
+const isValidObjectId = (id: string): boolean => {
+  return /^[0-9a-fA-F]{24}$/.test(id);
+};
+
 export default function ReportModal({
   isOpen,
   onClose,
@@ -43,21 +48,18 @@ export default function ReportModal({
   const [firebaseToken, setFirebaseToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
-  // Directly set API URL to known port 5001
   const apiUrl = 'http://localhost:5001';
   
-  // Fetch Firebase token when modal opens
   useEffect(() => {
     if (isOpen) {
       const auth = getAuth();
       
-      // Get current user and token
       const fetchToken = async () => {
         try {
           const currentUser = auth.currentUser;
           
           if (currentUser) {
-            const token = await currentUser.getIdToken(true); // Force refresh token
+            const token = await currentUser.getIdToken(true);
             setFirebaseToken(token);
             setIsAuthenticated(true);
             console.log('🔐 Firebase auth: User is authenticated');
@@ -66,7 +68,6 @@ export default function ReportModal({
             setIsAuthenticated(false);
             setFirebaseToken(null);
             
-            // Try to get from localStorage as fallback
             const storedToken = localStorage.getItem('token') || 
                                localStorage.getItem('authToken') || 
                                localStorage.getItem('firebaseToken');
@@ -84,7 +85,6 @@ export default function ReportModal({
 
       fetchToken();
       
-      // Listen for auth state changes
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         if (user) {
           user.getIdToken().then(token => {
@@ -105,32 +105,32 @@ export default function ReportModal({
     e.preventDefault();
     
     console.log('🚩 FORM SUBMIT TRIGGERED');
+    console.log('🚩 Props received:', { targetType, targetId, targetTitle });
     
-    // Check authentication first
     if (!isAuthenticated || !firebaseToken) {
       setError('Authentication required to report content. Please sign in.');
       return;
     }
     
-    // Validation - ensure all required fields are present and correct
     if (!selectedReason) {
       setError('Please select a reason for reporting');
       return;
     }
 
-    if (!targetType || (
-      targetType !== 'discussion' && 
-      targetType !== 'comment' && 
-      targetType !== 'user' && 
-      targetType !== 'book' && 
-      targetType !== 'chapter'
-    )) {
+    if (!targetType) {
       setError('Valid target type is required');
       return;
     }
 
     if (!targetId || targetId.trim() === '') {
       setError('Target ID is required');
+      return;
+    }
+
+    // Validate ObjectId format
+    if (!isValidObjectId(targetId.trim())) {
+      setError(`Invalid ID format for ${targetType}. Please refresh the page and try again.`);
+      console.error('🚨 Invalid ObjectId format:', targetId);
       return;
     }
 
@@ -143,27 +143,36 @@ export default function ReportModal({
     setError('');
 
     try {
-      // Create the payload according to the API documentation
+      // Map frontend targetType to backend reportType (as per backend controller)
+      let reportType;
+      switch(targetType) {
+        case 'book':
+          reportType = 'userbook'; // Backend expects 'userbook'
+          break;
+        case 'chapter':
+          reportType = 'comment'; // Map chapter to comment as fallback
+          break;
+        default:
+          reportType = targetType; // discussion, comment, user map directly
+      }
+
+      // Create payload exactly as backend expects (using reportType, not targetType)
       const reportData = {
-        targetType: targetType,
+        reportType: reportType,
         targetId: targetId.trim(),
         reason: selectedReason,
-        description: description.trim() || undefined // Only include if not empty
+        ...(description.trim() && { description: description.trim() })
       };
       
       console.log('🚩 Sending report data:', JSON.stringify(reportData, null, 2));
       console.log('🚩 API endpoint:', `${apiUrl}/api/reports`);
       
-      // Use axios for the API call
-      const response = await axios({
-        method: 'post',
-        url: `${apiUrl}/api/reports`,
-        data: reportData,
+      const response = await axios.post(`${apiUrl}/api/reports`, reportData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${firebaseToken}`
         },
-        timeout: 10000 // 10 seconds timeout
+        timeout: 15000
       });
       
       console.log('✅ Report submitted successfully:', response.data);
@@ -175,40 +184,44 @@ export default function ReportModal({
         setSelectedReason('');
         setDescription('');
       }, 2000);
+      
     } catch (err: unknown) {
       console.error('❌ Report submission failed with error:', err);
       
-      // Enhanced error handling for axios errors
       if (axios.isAxiosError(err)) {
         console.log('❌ Axios error details:', {
           status: err.response?.status,
           statusText: err.response?.statusText,
           data: err.response?.data,
           message: err.message,
-          code: err.code
+          code: err.code,
+          url: err.config?.url,
+          method: err.config?.method,
+          requestData: err.config?.data
         });
         
-        // Get detailed error message from response
         const errorMessage = err.response?.data?.message || err.message;
         
         if (err.response?.status === 400) {
-          // Handle specific validation errors
           if (errorMessage.includes('required')) {
             setError('All required fields must be provided: Report type, target ID, and reason');
+          } else if (errorMessage.includes('Invalid report type')) {
+            setError(`Cannot report ${targetType} content. Invalid content type.`);
+          } else if (errorMessage.includes('Invalid reason')) {
+            setError(`Invalid reason selected. Please choose a valid reason.`);
           } else {
             setError(errorMessage || 'Invalid data. Please check all fields');
           }
         } else if (err.response?.status === 404) {
-          setError('Content not found or no longer available');
+          setError(`The ${targetType} you're trying to report was not found. It may have been deleted or the ID "${targetId}" is invalid.`);
         } else if (err.response?.status === 409) {
           setError('You have already reported this content');
         } else if (err.response?.status === 401 || err.response?.status === 403) {
-          // Try to refresh the token
           try {
             const auth = getAuth();
             const currentUser = auth.currentUser;
             if (currentUser) {
-              const newToken = await currentUser.getIdToken(true); // Force refresh
+              const newToken = await currentUser.getIdToken(true);
               setFirebaseToken(newToken);
               setError('Your session was refreshed. Please try again.');
             } else {
@@ -238,21 +251,52 @@ export default function ReportModal({
     }
   };
 
-  // Debugging function - test API connection
+  const logDebugInfo = () => {
+    const reportType = targetType === 'book' ? 'userbook' : 
+                      targetType === 'chapter' ? 'comment' : targetType;
+    
+    console.log('🧪 Debug Info:', {
+      modal_props: { targetType, targetId, targetTitle },
+      target_id_valid: isValidObjectId(targetId?.trim() || ''),
+      target_id_length: targetId?.length,
+      mapped_report_type: reportType,
+      selected_reason: selectedReason,
+      auth_status: isAuthenticated,
+      has_token: !!firebaseToken,
+      api_endpoint: `${apiUrl}/api/reports`,
+      payload_will_be: {
+        reportType: reportType,
+        targetId: targetId?.trim(),
+        reason: selectedReason,
+        ...(description.trim() && { description: description.trim() })
+      }
+    });
+  };
+
   const testConnection = async () => {
     try {
-      console.log('🧪 Testing API connection to:', apiUrl);
-      const response = await axios.get(`${apiUrl}/api/health`, {
-        timeout: 3000
+      console.log('🧪 Testing connection to:', `${apiUrl}/api/reports/my-reports`);
+      
+      const response = await axios.get(`${apiUrl}/api/reports/my-reports?page=1&limit=1`, {
+        headers: {
+          'Authorization': `Bearer ${firebaseToken}`
+        },
+        timeout: 5000
       });
-      console.log('🧪 Health check response:', response.status, response.statusText);
-      console.log('🧪 Health check data:', response.data);
-      setError(`Server at ${apiUrl} is reachable`);
-      return true;
+      
+      console.log('✅ Connection test successful:', response.status);
+      logDebugInfo();
+      setError('Server connection OK. Check console for debug info.');
+      
     } catch (error) {
-      console.error('🧪 Health check failed:', error);
-      setError(`Cannot connect to server at ${apiUrl}. Make sure it's running on port 5001.`);
-      return false;
+      console.error('❌ Connection test failed:', error);
+      logDebugInfo();
+      
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        setError('Authentication issue detected. Please sign in again.');
+      } else {
+        setError('Cannot connect to server. Make sure it\'s running on port 5001.');
+      }
     }
   };
 
@@ -270,13 +314,11 @@ export default function ReportModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Glass morphism backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={handleClose}
       />
       
-      {/* Modal */}
       <div className="relative w-full max-w-md mx-4 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-amber-200">
         {success ? (
           <div className="p-6 text-center">
@@ -315,7 +357,7 @@ export default function ReportModal({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z"
                 />
               </svg>
             </div>
@@ -342,7 +384,6 @@ export default function ReportModal({
           </div>
         ) : (
           <>
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-amber-100">
               <h2 className="text-xl font-semibold text-gray-900">
                 Report {targetType}
@@ -363,7 +404,6 @@ export default function ReportModal({
               </button>
             </div>
 
-            {/* Content */}
             <form onSubmit={handleSubmit} className="p-6">
               {targetTitle && (
                 <div className="mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
@@ -371,7 +411,10 @@ export default function ReportModal({
                     <span className="font-medium">Reporting:</span> {targetTitle}
                   </p>
                   <p className="text-xs text-amber-600 mt-1">
-                    ID: {targetId}
+                    Type: {targetType} | ID: {targetId}
+                  </p>
+                  <p className="text-xs text-amber-500 mt-1">
+                    Valid ID: {isValidObjectId(targetId || '') ? '✓' : '✗'}
                   </p>
                 </div>
               )}
@@ -379,19 +422,25 @@ export default function ReportModal({
               {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm text-red-600">{error}</p>
-                  {error.includes('server') && (
+                  <div className="flex flex-wrap gap-2 mt-2">
                     <button
                       type="button"
-                      onClick={() => testConnection()}
-                      className="mt-2 text-xs text-blue-600 underline"
+                      onClick={testConnection}
+                      className="text-xs text-blue-600 underline hover:text-blue-800"
                     >
-                      Test connection to {apiUrl}
+                      Test Connection
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={logDebugInfo}
+                      className="text-xs text-blue-600 underline hover:text-blue-800"
+                    >
+                      Show Debug Info
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* Reason Selection */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Why are you reporting this {targetType}? *
@@ -422,7 +471,6 @@ export default function ReportModal({
                 </div>
               </div>
 
-              {/* Description */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Additional details (optional)
@@ -441,7 +489,6 @@ export default function ReportModal({
                 </p>
               </div>
 
-              {/* Actions */}
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -453,7 +500,7 @@ export default function ReportModal({
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || !selectedReason}
+                  disabled={isSubmitting || !selectedReason || !isValidObjectId(targetId || '')}
                   className="flex-1 px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                 >
                   {isSubmitting ? (
@@ -475,6 +522,8 @@ export default function ReportModal({
                       </svg>
                       Submitting...
                     </span>
+                  ) : !isValidObjectId(targetId || '') ? (
+                    'Invalid ID Format'
                   ) : (
                     'Submit Report'
                   )}
