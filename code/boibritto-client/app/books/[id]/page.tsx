@@ -227,17 +227,9 @@ export default function BookPage({ params }: BookPageProps) {
           {/* Cover Image */}
           <div className="lg:col-span-1">
             <div className="aspect-[3/4] bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl overflow-hidden relative">
-              {book.coverImage ? (
-                <img
-                  src={book.coverImage}
-                  alt={book.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <Book className="text-amber-600" size={80} />
-                </div>
-              )}
+              <div className="flex items-center justify-center h-full">
+                <Book className="text-amber-600" size={80} />
+              </div>
 
               {/* Status Badge */}
               <div className="absolute top-4 left-4">

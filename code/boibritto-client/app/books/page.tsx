@@ -251,17 +251,9 @@ function BookCard({ book, onLike }: BookCardProps) {
       <Link href={`/books/${book._id}`} className="block">
         {/* Cover Image */}
         <div className="aspect-[3/4] bg-gradient-to-br from-amber-100 to-amber-200 relative overflow-hidden">
-          {book.coverImage ? (
-            <img
-              src={book.coverImage}
-              alt={book.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <Book className="text-amber-600" size={48} />
-            </div>
-          )}
+          <div className="flex items-center justify-center h-full">
+            <Book className="text-amber-600" size={48} />
+          </div>
 
           {/* Status Badge */}
           <div className="absolute top-3 left-3">

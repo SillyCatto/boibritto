@@ -3,23 +3,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Upload, Book, Eye, EyeOff, Save } from 'lucide-react';
-import { userBooksAPI, uploadCoverImage } from '@/lib/userBooksAPI';
+import { ArrowLeft, Book, Eye, EyeOff, Save } from 'lucide-react';
+import { userBooksAPI } from '@/lib/userBooksAPI';
 import { CreateUserBookData } from '@/lib/types/userBooks';
 import { GENRES } from '@/lib/constants';
 
 export default function CreateBookPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState<CreateUserBookData>({
     title: '',
     synopsis: '',
     genres: [],
     visibility: 'private',
-    coverImage: '',
   });
-  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,29 +43,7 @@ export default function CreateBookPage() {
     try {
       setLoading(true);
 
-      // Upload cover image if selected
-      let coverImageUrl = formData.coverImage;
-      if (coverImageFile) {
-        try {
-          setUploadingImage(true);
-          console.log('Starting cover image upload...');
-          coverImageUrl = await uploadCoverImage(coverImageFile);
-          console.log('Cover image uploaded successfully!');
-        } catch (uploadError: any) {
-          console.error('Error uploading cover image:', uploadError);
-          setErrors({ general: uploadError.message || 'Failed to upload cover image' });
-          return;
-        } finally {
-          setUploadingImage(false);
-        }
-      }
-
-      const bookData: CreateUserBookData = {
-        ...formData,
-        coverImage: coverImageUrl,
-      };
-
-      const { book } = await userBooksAPI.createUserBook(bookData);
+      const { book } = await userBooksAPI.createUserBook(formData);
 
       // Redirect to the new book's page
       router.push(`/books/${book._id}`);
@@ -87,22 +62,6 @@ export default function CreateBookPage() {
         ? prev.genres.filter(g => g !== genre)
         : [...(prev.genres || []), genre]
     }));
-  };
-
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Check file size and show warning for large files
-      const fileSizeMB = file.size / 1024 / 1024;
-      if (fileSizeMB > 5) {
-        console.warn(`Large file selected: ${fileSizeMB.toFixed(2)}MB. This will be compressed during upload.`);
-      }
-      
-      setCoverImageFile(file);
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setFormData(prev => ({ ...prev, coverImage: previewUrl }));
-    }
   };
 
   return (
@@ -241,55 +200,26 @@ export default function CreateBookPage() {
               </div>
             </div>
 
-            {/* Sidebar - Cover Image */}
+            {/* Sidebar - Book Icon Preview */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-6 sticky top-8">
                 <label className="block text-sm font-medium text-gray-700 mb-4">
-                  Cover Image
+                  Book Icon
                 </label>
 
-                <div className="aspect-[3/4] border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center bg-gray-50 mb-4 relative overflow-hidden">
-                  {formData.coverImage ? (
-                    <img
-                      src={formData.coverImage}
-                      alt="Book cover"
-                      className="w-full h-full object-cover"
+                {/* Book Icon Preview */}
+                <div className="aspect-[3/4] border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center bg-gray-50 mb-4">
+                  <div className="text-center">
+                    <Book 
+                      className="mx-auto mb-2 text-amber-600" 
+                      size={64} 
                     />
-                  ) : (
-                    <div className="text-center">
-                      <Book className="mx-auto text-gray-400 mb-2" size={48} />
-                      <p className="text-sm text-gray-500">No cover image</p>
-                    </div>
-                  )}
+                    <p className="text-sm text-gray-500">Default Book Icon</p>
+                  </div>
                 </div>
 
-                <label className="block">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleCoverImageChange}
-                    className="hidden"
-                  />
-                  <div className="flex items-center justify-center gap-2 w-full px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                    <Upload size={16} />
-                    <span className="text-sm">
-                      {formData.coverImage ? 'Change Cover' : 'Upload Cover'}
-                    </span>
-                  </div>
-                </label>
-
-                {coverImageFile && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    <p>File: {coverImageFile.name}</p>
-                    <p>Size: {(coverImageFile.size / 1024 / 1024).toFixed(2)}MB</p>
-                    {coverImageFile.size > 5 * 1024 * 1024 && (
-                      <p className="text-amber-600">⚡ Large file will be compressed for faster upload</p>
-                    )}
-                  </div>
-                )}
-
-                <p className="text-xs text-gray-500 mt-2">
-                  Recommended: 400x600px, JPG or PNG
+                <p className="text-xs text-gray-500 mt-3">
+                  All books will use this default icon
                 </p>
               </div>
             </div>
@@ -306,15 +236,10 @@ export default function CreateBookPage() {
 
             <button
               type="submit"
-              disabled={loading || uploadingImage || !formData.title.trim()}
+              disabled={loading || !formData.title.trim()}
               className="flex items-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {uploadingImage ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Uploading Image...
-                </>
-              ) : loading ? (
+              {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                   Creating Book...
