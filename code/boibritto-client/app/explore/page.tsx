@@ -32,7 +32,7 @@ interface RecommendedBook {
       thumbnail?: string;
     };
   };
-  source: 'reading-list' | 'collection' | 'tag' | 'recent';
+  source: 'reading-list' | 'collection' | 'activity' | 'mixed';
 }
 
 const GENRES = [
@@ -227,8 +227,8 @@ export default function ExplorePage() {
   // Recommendation states
   const [readingListRecommendations, setReadingListRecommendations] = useState<RecommendedBook[]>([]);
   const [collectionRecommendations, setCollectionRecommendations] = useState<RecommendedBook[]>([]);
-  const [tagBasedRecommendations, setTagBasedRecommendations] = useState<RecommendedBook[]>([]);
-  const [recentRecommendations, setRecentRecommendations] = useState<RecommendedBook[]>([]);
+  const [activityBasedRecommendations, setActivityBasedRecommendations] = useState<RecommendedBook[]>([]);
+  const [mixedRecommendations, setMixedRecommendations] = useState<RecommendedBook[]>([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [hasReadingList, setHasReadingList] = useState(false);
   const [hasCollections, setHasCollections] = useState(false);
@@ -240,8 +240,8 @@ export default function ExplorePage() {
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({
     'reading-list': false,
     'collection': false,
-    'tag': false,
-    'recent': false,
+    'activity': false,
+    'mixed': false,
   });
   
   // Loading more states
@@ -249,14 +249,14 @@ export default function ExplorePage() {
   const [hasMore, setHasMore] = useState<{[key: string]: boolean}>({
     'reading-list': true,
     'collection': true,
-    'tag': true,
-    'recent': true,
+    'activity': true,
+    'mixed': true,
   });
   const [pageCounters, setPageCounters] = useState<{[key: string]: number}>({
     'reading-list': 0,
     'collection': 0,
-    'tag': 0,
-    'recent': 0,
+    'activity': 0,
+    'mixed': 0,
   });
   
   // Show all genres in the main view instead of splitting them
@@ -284,8 +284,8 @@ export default function ExplorePage() {
         setRecommendationsInitialized(false);
         setReadingListRecommendations([]);
         setCollectionRecommendations([]);
-        setTagBasedRecommendations([]);
-        setRecentRecommendations([]);
+        setActivityBasedRecommendations([]);
+        setMixedRecommendations([]);
       }
     });
 
@@ -481,48 +481,63 @@ export default function ExplorePage() {
         }
       }
 
-      // TAG-BASED RECOMMENDATIONS
+      // ACTIVITY-BASED RECOMMENDATIONS (Based on user's reading activity)
       if (topTag) {
-        console.log('Fetching tag-based recommendations...');
+        console.log('Fetching activity-based recommendations...');
         try {
-          const tagRecResponse = await fetch(
-            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(topTag)}&maxResults=16&startIndex=0&orderBy=relevance`
+          const activityRecResponse = await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(topTag)}&maxResults=16&startIndex=0&orderBy=newest`
           );
-          if (tagRecResponse.ok) {
-            const data = await tagRecResponse.json();
+          if (activityRecResponse.ok) {
+            const data = await activityRecResponse.json();
             if (data.items) {
-              const tagRecs = data.items
-                .map((item: any) => ({ ...item, source: 'tag' as const }));
-              setTagBasedRecommendations(tagRecs);
-              console.log('Set tag-based recommendations:', tagRecs.length);
+              const activityRecs = data.items
+                .map((item: any) => ({ ...item, source: 'activity' as const }));
+              setActivityBasedRecommendations(activityRecs);
+              console.log('Set activity-based recommendations:', activityRecs.length);
             }
           }
         } catch (error) {
-          console.error("Error fetching tag-based recommendations:", error);
+          console.error("Error fetching activity-based recommendations:", error);
         }
+      }
 
-        // RECENT BOOKS BASED ON TAGS
-        try {
-          const recentRecResponse = await fetch(
-            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(topTag)}&maxResults=16&startIndex=0&orderBy=newest&printType=books`
-          );
-          if (recentRecResponse.ok) {
-            const data = await recentRecResponse.json();
-            if (data.items) {
-              const recentRecs = data.items
-                .filter((item: any) => {
-                  return !readingListRecommendations.some(b => b.id === item.id) &&
-                         !collectionRecommendations.some(b => b.id === item.id) &&
-                         !tagBasedRecommendations.some(b => b.id === item.id);
-                })
-                .map((item: any) => ({ ...item, source: 'recent' as const }));
-              setRecentRecommendations(recentRecs);
-              console.log('Set recent recommendations:', recentRecs.length);
-            }
+      // MIXED RECOMMENDATIONS (Books For You - mixture of different categories)
+      console.log('Fetching mixed recommendations...');
+      try {
+        // Get a mixture of different genres/categories
+        const mixedCategories = ['fiction', 'mystery', 'biography', 'science', 'fantasy'];
+        const randomCategory = mixedCategories[Math.floor(Math.random() * mixedCategories.length)];
+        
+        // If user has a top tag, mix it with random categories
+        const searchTerm = topTag ? `${topTag} OR ${randomCategory}` : randomCategory;
+        
+        const mixedRecResponse = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchTerm)}&maxResults=32&startIndex=0&orderBy=relevance`
+        );
+        
+        if (mixedRecResponse.ok) {
+          const data = await mixedRecResponse.json();
+          if (data.items) {
+            // Filter out books already in other recommendations and shuffle for variety
+            const allExistingBooks = [
+              ...readingListRecommendations,
+              ...collectionRecommendations,
+              ...activityBasedRecommendations
+            ];
+            
+            const mixedRecs = data.items
+              .filter((item: any) => !allExistingBooks.some(b => b.id === item.id))
+              .map((item: any) => ({ ...item, source: 'mixed' as const }))
+              .sort(() => Math.random() - 0.5) // Shuffle the results
+              .slice(0, 16); // Take only 16 books
+            
+            setMixedRecommendations(mixedRecs);
+            console.log('Set mixed recommendations:', mixedRecs.length);
           }
-        } catch (error) {
-          console.error("Error fetching recent recommendations:", error);
         }
+      } catch (error) {
+        console.error("Error fetching mixed recommendations:", error);
       }
 
       setRecommendationsInitialized(true);
@@ -561,12 +576,14 @@ export default function ExplorePage() {
         case 'collection':
           searchQuery = `subject:literature`;
           break;
-        case 'tag':
-          searchQuery = userTopTag || 'fiction';
-          break;
-        case 'recent':
+        case 'activity':
           searchQuery = userTopTag || 'fiction';
           orderBy = 'newest';
+          break;
+        case 'mixed':
+          const mixedCategories = ['fiction', 'mystery', 'biography', 'science', 'fantasy', 'romance', 'thriller'];
+          const randomCategory = mixedCategories[Math.floor(Math.random() * mixedCategories.length)];
+          searchQuery = userTopTag ? `${userTopTag} OR ${randomCategory}` : randomCategory;
           break;
       }
       
@@ -580,12 +597,17 @@ export default function ExplorePage() {
           if (data.items && data.items.length > 0) {
             const currentBooks = sectionKey === 'reading-list' ? readingListRecommendations :
                                sectionKey === 'collection' ? collectionRecommendations :
-                               sectionKey === 'tag' ? tagBasedRecommendations :
-                               recentRecommendations;
+                               sectionKey === 'activity' ? activityBasedRecommendations :
+                               mixedRecommendations;
             
             const newBooks = data.items
               .filter((item: any) => !currentBooks.some(b => b.id === item.id))
               .map((item: any) => ({ ...item, source: sectionKey as any }));
+            
+            // For mixed recommendations, shuffle the new books
+            if (sectionKey === 'mixed') {
+              newBooks.sort(() => Math.random() - 0.5);
+            }
             
             // Update the appropriate state
             switch (sectionKey) {
@@ -595,11 +617,11 @@ export default function ExplorePage() {
               case 'collection':
                 setCollectionRecommendations(prev => [...prev, ...newBooks]);
                 break;
-              case 'tag':
-                setTagBasedRecommendations(prev => [...prev, ...newBooks]);
+              case 'activity':
+                setActivityBasedRecommendations(prev => [...prev, ...newBooks]);
                 break;
-              case 'recent':
-                setRecentRecommendations(prev => [...prev, ...newBooks]);
+              case 'mixed':
+                setMixedRecommendations(prev => [...prev, ...newBooks]);
                 break;
             }
             
@@ -754,6 +776,27 @@ export default function ExplorePage() {
                   <p className="text-gray-600">Books curated based on your reading activity</p>
                 </div>
 
+                {/* Books For You (Mixed Recommendations) */}
+                <ExpandableSection
+                  title="Books For You"
+                  icon={
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  }
+                  books={mixedRecommendations}
+                  onLoadMore={() => loadMoreBooks('mixed')}
+                  loading={loadingMore['mixed'] || false}
+                  hasMore={hasMore['mixed'] || false}
+                  expanded={expandedSections['mixed'] || false}
+                  onToggle={() => toggleSection('mixed')}
+                  emptyMessage="Start reading books to get personalized recommendations"
+                  emptyAction={{
+                    text: "Explore Books",
+                    href: "#"
+                  }}
+                />
+
                 {/* Reading List Recommendations */}
                 <ExpandableSection
                   title="Based on Your Reading List"
@@ -796,42 +839,25 @@ export default function ExplorePage() {
                   }}
                 />
 
-                {/* Tag-based Recommendations */}
+                {/* Activity-based Recommendations */}
                 <ExpandableSection
-                  title="Books For You"
+                  title="Based on Your Activity"
                   icon={
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   }
-                  books={tagBasedRecommendations}
-                  onLoadMore={() => loadMoreBooks('tag')}
-                  loading={loadingMore['tag'] || false}
-                  hasMore={hasMore['tag'] || false}
-                  expanded={expandedSections['tag'] || false}
-                  onToggle={() => toggleSection('tag')}
-                  emptyMessage="Start reading books to get personalized tag-based recommendations"
+                  books={activityBasedRecommendations}
+                  onLoadMore={() => loadMoreBooks('activity')}
+                  loading={loadingMore['activity'] || false}
+                  hasMore={hasMore['activity'] || false}
+                  expanded={expandedSections['activity'] || false}
+                  onToggle={() => toggleSection('activity')}
+                  emptyMessage="Start reading books to get activity-based recommendations"
                   emptyAction={{
                     text: "Explore Books",
                     href: "#"
                   }}
-                />
-
-                {/* Recent Books */}
-                <ExpandableSection
-                  title="Recent Books"
-                  icon={
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  }
-                  books={recentRecommendations}
-                  onLoadMore={() => loadMoreBooks('recent')}
-                  loading={loadingMore['recent'] || false}
-                  hasMore={hasMore['recent'] || false}
-                  expanded={expandedSections['recent'] || false}
-                  onToggle={() => toggleSection('recent')}
-                  emptyMessage="Latest releases based on your reading preferences"
                 />
               </div>
             )
