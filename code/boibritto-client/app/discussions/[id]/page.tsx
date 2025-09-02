@@ -10,6 +10,7 @@ import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Comments } from "@/components/comments";
+import ReportModal from "@/components/ui/ReportModal";
 
 interface BookInfo {
   id: string;
@@ -43,7 +44,8 @@ export default function DiscussionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
-  
+  const [showReportModal, setShowReportModal] = useState(false);
+
   // Book-related states
   const [linkedBooks, setLinkedBooks] = useState<BookInfo[]>([]);
   const [loadingBooks, setLoadingBooks] = useState(false);
@@ -51,11 +53,14 @@ export default function DiscussionDetailPage() {
   const [bookSearchResults, setBookSearchResults] = useState<BookInfo[]>([]);
   const [showBookSearch, setShowBookSearch] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  
+
   // Simple notification state
-  const [notification, setNotification] = useState<{ message: string; show: boolean }>({
+  const [notification, setNotification] = useState<{
+    message: string;
+    show: boolean;
+  }>({
     message: "",
-    show: false
+    show: false,
   });
 
   // Show simple notification
@@ -76,9 +81,11 @@ export default function DiscussionDetailPage() {
     setSearchLoading(true);
     try {
       const response = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=6`
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+          query
+        )}&maxResults=6`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.items) {
@@ -87,7 +94,7 @@ export default function DiscussionDetailPage() {
             title: item.volumeInfo.title,
             authors: item.volumeInfo.authors,
             imageLinks: item.volumeInfo.imageLinks,
-            categories: item.volumeInfo.categories
+            categories: item.volumeInfo.categories,
           }));
           setBookSearchResults(books);
         } else {
@@ -103,10 +110,9 @@ export default function DiscussionDetailPage() {
   }, []);
 
   // Debounced search
-  const debouncedSearch = useCallback(
-    debounce(performSearch, 300),
-    [performSearch]
-  );
+  const debouncedSearch = useCallback(debounce(performSearch, 300), [
+    performSearch,
+  ]);
 
   // Handle search query change
   useEffect(() => {
@@ -120,7 +126,7 @@ export default function DiscussionDetailPage() {
         setLoading(true);
         const response = await discussionsAPI.getDiscussion(discussionId);
         setDiscussion(response.discussion);
-        
+
         // Extract book IDs from discussion content (if any)
         extractBooksFromContent(response.discussion.content);
       } catch (err) {
@@ -140,12 +146,14 @@ export default function DiscussionDetailPage() {
   const extractBooksFromContent = async (content: string) => {
     const bookIdRegex = /\[book:([a-zA-Z0-9_-]+)\]/g;
     const matches = content.match(bookIdRegex);
-    
+
     if (matches) {
       setLoadingBooks(true);
-      const bookIds = matches.map(match => match.replace(/\[book:([a-zA-Z0-9_-]+)\]/, '$1'));
+      const bookIds = matches.map((match) =>
+        match.replace(/\[book:([a-zA-Z0-9_-]+)\]/, "$1")
+      );
       const uniqueBookIds = [...new Set(bookIds)];
-      
+
       try {
         const bookPromises = uniqueBookIds.map(async (bookId) => {
           try {
@@ -155,16 +163,16 @@ export default function DiscussionDetailPage() {
               title: bookData.title,
               authors: bookData.authors,
               imageLinks: bookData.imageLinks,
-              categories: bookData.categories
+              categories: bookData.categories,
             };
           } catch (error) {
             console.error(`Failed to fetch book ${bookId}:`, error);
             return null;
           }
         });
-        
+
         const books = await Promise.all(bookPromises);
-        setLinkedBooks(books.filter(book => book !== null) as BookInfo[]);
+        setLinkedBooks(books.filter((book) => book !== null) as BookInfo[]);
       } catch (error) {
         console.error("Error fetching books:", error);
       } finally {
@@ -176,12 +184,17 @@ export default function DiscussionDetailPage() {
   // Add book reference to clipboard with simple notification
   const addBookReference = (book: BookInfo) => {
     const bookReference = `[book:${book.id}]`;
-    navigator.clipboard.writeText(bookReference).then(() => {
-      showNotification(`📖 "${book.title}" reference copied! Paste it in your comments to link this book.`);
-    }).catch(() => {
-      showNotification("Failed to copy book reference. Please try again.");
-    });
-    
+    navigator.clipboard
+      .writeText(bookReference)
+      .then(() => {
+        showNotification(
+          `📖 "${book.title}" reference copied! Paste it in your comments to link this book.`
+        );
+      })
+      .catch(() => {
+        showNotification("Failed to copy book reference. Please try again.");
+      });
+
     setShowBookSearch(false);
     setBookSearchResults([]);
     setBookSearchQuery("");
@@ -191,7 +204,7 @@ export default function DiscussionDetailPage() {
   const renderContentWithBooks = (content: string) => {
     const bookIdRegex = /\[book:([a-zA-Z0-9_-]+)\]/g;
     const parts = content.split(bookIdRegex);
-    
+
     const elements = [];
     for (let i = 0; i < parts.length; i++) {
       if (i % 2 === 0) {
@@ -206,11 +219,11 @@ export default function DiscussionDetailPage() {
       } else {
         // Book ID - replace with clickable link
         const bookId = parts[i];
-        const book = linkedBooks.find(b => b.id === bookId);
+        const book = linkedBooks.find((b) => b.id === bookId);
         if (book) {
           elements.push(
-            <Link 
-              key={i} 
+            <Link
+              key={i}
               href={`/book/${bookId}`}
               className="inline-flex items-center mx-1 px-3 py-2 bg-amber-100 text-amber-800 rounded-md hover:bg-amber-200 transition-colors text-sm font-medium border border-amber-200"
             >
@@ -219,7 +232,10 @@ export default function DiscussionDetailPage() {
           );
         } else {
           elements.push(
-            <span key={i} className="text-gray-500 text-sm bg-gray-100 px-2 py-1 rounded">
+            <span
+              key={i}
+              className="text-gray-500 text-sm bg-gray-100 px-2 py-1 rounded"
+            >
               [Book: {bookId}]
             </span>
           );
@@ -295,7 +311,9 @@ export default function DiscussionDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700 mx-auto"></div>
-          <p className="mt-4 text-amber-700 font-medium">Loading discussion...</p>
+          <p className="mt-4 text-amber-700 font-medium">
+            Loading discussion...
+          </p>
         </div>
       </div>
     );
@@ -372,13 +390,49 @@ export default function DiscussionDetailPage() {
             </Link>
 
             <div className="flex items-center gap-2">
+              {/* Report button - only show if not owner and user is logged in */}
+              {user && !isOwner && (
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 font-medium shadow-sm"
+                  title="Report this discussion"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 3l1.664 6L3 15l13.333-6L3 3z"
+                    />
+                  </svg>
+                  Report
+                </button>
+              )}
+
               {/* Link Book Button - Boibritto themed */}
               <button
                 onClick={() => setShowBookSearch(!showBookSearch)}
                 className="px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition-colors flex items-center gap-2 font-medium shadow-sm"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-4 h-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                  />
                 </svg>
                 Link Book
               </button>
@@ -439,10 +493,23 @@ export default function DiscussionDetailPage() {
           {showBookSearch && (
             <div className="mb-6 p-6 bg-amber-50 border-2 border-amber-200 rounded-lg shadow-sm">
               <div className="flex items-center gap-2 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-amber-700">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-6 h-6 text-amber-700"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                  />
                 </svg>
-                <h3 className="font-semibold text-amber-800 text-lg">Link a Book to This Discussion</h3>
+                <h3 className="font-semibold text-amber-800 text-lg">
+                  Link a Book to This Discussion
+                </h3>
               </div>
 
               <div className="relative mb-4">
@@ -459,12 +526,14 @@ export default function DiscussionDetailPage() {
                   </div>
                 )}
               </div>
-              
+
               {bookSearchQuery && (
                 <div className="space-y-3 max-h-80 overflow-y-auto">
                   {bookSearchResults.length > 0 ? (
                     <>
-                      <p className="text-sm text-amber-700 font-medium mb-3">Click on a book to copy its reference:</p>
+                      <p className="text-sm text-amber-700 font-medium mb-3">
+                        Click on a book to copy its reference:
+                      </p>
                       {bookSearchResults.map((book) => (
                         <div
                           key={book.id}
@@ -482,13 +551,26 @@ export default function DiscussionDetailPage() {
                             />
                           ) : (
                             <div className="w-12 h-18 bg-amber-100 rounded flex items-center justify-center flex-shrink-0">
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-amber-600">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                                className="w-6 h-6 text-amber-600"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                                />
                               </svg>
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 line-clamp-2 mb-1">{book.title}</h4>
+                            <h4 className="font-medium text-gray-900 line-clamp-2 mb-1">
+                              {book.title}
+                            </h4>
                             <p className="text-sm text-gray-600 mb-2">
                               {book.authors?.join(", ") || "Unknown Author"}
                             </p>
@@ -499,8 +581,19 @@ export default function DiscussionDetailPage() {
                             )}
                           </div>
                           <div className="flex-shrink-0 text-amber-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
+                              className="w-5 h-5"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"
+                              />
                             </svg>
                           </div>
                         </div>
@@ -508,25 +601,52 @@ export default function DiscussionDetailPage() {
                     </>
                   ) : bookSearchQuery && !searchLoading ? (
                     <div className="text-center py-6">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-gray-400 mb-2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-12 h-12 mx-auto text-gray-400 mb-2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                        />
                       </svg>
-                      <p className="text-gray-500">No books found for "{bookSearchQuery}"</p>
+                      <p className="text-gray-500">
+                        No books found for "{bookSearchQuery}"
+                      </p>
                     </div>
                   ) : null}
                 </div>
               )}
-              
+
               <div className="mt-4 p-3 bg-amber-100 rounded-lg border border-amber-200">
                 <div className="flex items-start gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189c.422-.131.813-.349 1.157-.646l1.07-1.07a4.5 4.5 0 00-6.364 0l1.07 1.07c.344.297.735.515 1.157.646M12 12.75a6.01 6.01 0 01-1.5-.189c-.422-.131-.813-.349-1.157-.646l-1.07-1.07a4.5 4.5 0 016.364 0l-1.07 1.07a4.502 4.502 0 01-1.157.646M12 12.75V7.5" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189c.422-.131.813-.349 1.157-.646l1.07-1.07a4.5 4.5 0 00-6.364 0l1.07 1.07c.344.297.735.515 1.157.646M12 12.75a6.01 6.01 0 01-1.5-.189c-.422-.131-.813-.349-1.157-.646l-1.07-1.07a4.5 4.5 0 016.364 0l-1.07 1.07a4.502 4.502 0 01-1.157.646M12 12.75V7.5"
+                    />
                   </svg>
                   <div>
-                    <p className="text-sm text-amber-800 font-medium">How to use Book Links:</p>
+                    <p className="text-sm text-amber-800 font-medium">
+                      How to use Book Links:
+                    </p>
                     <p className="text-xs text-amber-700 mt-1">
-                      Search and click on a book to copy its reference code. 
-                      Paste the code in your comments to create clickable book links!
+                      Search and click on a book to copy its reference code.
+                      Paste the code in your comments to create clickable book
+                      links!
                     </p>
                   </div>
                 </div>
@@ -633,15 +753,26 @@ export default function DiscussionDetailPage() {
         {linkedBooks.length > 0 && (
           <div className="mb-8 bg-white rounded-lg shadow-sm p-6 border border-amber-100">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2 text-amber-700">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5 mr-2 text-amber-700"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                />
               </svg>
               Books Referenced in This Discussion
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {linkedBooks.map((book) => (
-                <Link 
-                  key={book.id} 
+                <Link
+                  key={book.id}
                   href={`/book/${book.id}`}
                   className="flex items-start gap-3 p-4 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors border border-amber-200 hover:border-amber-300"
                 >
@@ -656,7 +787,9 @@ export default function DiscussionDetailPage() {
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 text-sm line-clamp-2">{book.title}</h3>
+                    <h3 className="font-medium text-gray-900 text-sm line-clamp-2">
+                      {book.title}
+                    </h3>
                     <p className="text-xs text-gray-600 mt-1">
                       {book.authors?.join(", ") || "Unknown Author"}
                     </p>
@@ -681,6 +814,17 @@ export default function DiscussionDetailPage() {
           />
         </div>
       </div>
+
+      {/* Report Modal */}
+      {user && !isOwner && (
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          targetType="discussion"
+          targetId={discussionId}
+          targetTitle={discussion?.title}
+        />
+      )}
     </div>
   );
 }

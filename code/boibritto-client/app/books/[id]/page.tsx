@@ -1,12 +1,27 @@
 "use client";
 
-import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
-import { ArrowLeft, Book, Edit, Plus, Eye, EyeOff, Heart, Calendar, User as UserIcon, BookOpen, FileText, Settings, Trash2 } from 'lucide-react';
-import { userBooksAPI, chaptersAPI } from '@/lib/userBooksAPI';
-import { UserBook, Chapter } from '@/lib/types/userBooks';
+import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import {
+  ArrowLeft,
+  Book,
+  Edit,
+  Plus,
+  Eye,
+  EyeOff,
+  Heart,
+  Calendar,
+  User as UserIcon,
+  BookOpen,
+  FileText,
+  Settings,
+  Trash2,
+} from "lucide-react";
+import { userBooksAPI, chaptersAPI } from "@/lib/userBooksAPI";
+import { UserBook, Chapter } from "@/lib/types/userBooks";
+import ReportModal from "@/components/ui/ReportModal";
 
 interface BookPageProps {
   params: Promise<{
@@ -25,6 +40,7 @@ export default function BookPage({ params }: BookPageProps) {
   const [authInitialized, setAuthInitialized] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteChapterId, setDeleteChapterId] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Check if current user is the owner - matches your existing pattern
   const isOwner = currentUser && book && book.author._id === currentUser._id;
@@ -36,7 +52,7 @@ export default function BookPage({ params }: BookPageProps) {
       setUser(firebaseUser);
       setAuthInitialized(true);
       if (!firebaseUser) {
-        router.push('/signin');
+        router.push("/signin");
       }
     });
     return () => unsubscribe();
@@ -59,13 +75,18 @@ export default function BookPage({ params }: BookPageProps) {
       const [bookData, chaptersData, profileRes] = await Promise.all([
         userBooksAPI.getUserBook(resolvedParams.id),
         chaptersAPI.getChaptersForBook(resolvedParams.id),
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/profile/me`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-        })
+        fetch(
+          `${
+            process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"
+          }/api/profile/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+          }
+        ),
       ]);
 
       setBook(bookData.book);
@@ -79,11 +100,14 @@ export default function BookPage({ params }: BookPageProps) {
         }
       }
     } catch (error) {
-      console.error('Error fetching book:', error);
-      if (error instanceof Error && error.message.includes('not authenticated')) {
-        router.push('/signin');
+      console.error("Error fetching book:", error);
+      if (
+        error instanceof Error &&
+        error.message.includes("not authenticated")
+      ) {
+        router.push("/signin");
       } else {
-        router.push('/books');
+        router.push("/books");
       }
     } finally {
       setLoading(false);
@@ -96,9 +120,12 @@ export default function BookPage({ params }: BookPageProps) {
       await userBooksAPI.likeUserBook(book._id);
       fetchBookData(); // Refresh to get updated like count
     } catch (error) {
-      console.error('Error liking book:', error);
-      if (error instanceof Error && error.message.includes('not authenticated')) {
-        router.push('/signin');
+      console.error("Error liking book:", error);
+      if (
+        error instanceof Error &&
+        error.message.includes("not authenticated")
+      ) {
+        router.push("/signin");
       }
     }
   };
@@ -107,11 +134,14 @@ export default function BookPage({ params }: BookPageProps) {
     if (!book || !user) return;
     try {
       await userBooksAPI.deleteUserBook(book._id);
-      router.push('/books');
+      router.push("/books");
     } catch (error) {
-      console.error('Error deleting book:', error);
-      if (error instanceof Error && error.message.includes('not authenticated')) {
-        router.push('/signin');
+      console.error("Error deleting book:", error);
+      if (
+        error instanceof Error &&
+        error.message.includes("not authenticated")
+      ) {
+        router.push("/signin");
       }
     }
   };
@@ -124,9 +154,12 @@ export default function BookPage({ params }: BookPageProps) {
       setDeleteChapterId(null);
       fetchBookData(); // Refresh chapters
     } catch (error) {
-      console.error('Error deleting chapter:', error);
-      if (error instanceof Error && error.message.includes('not authenticated')) {
-        router.push('/signin');
+      console.error("Error deleting chapter:", error);
+      if (
+        error instanceof Error &&
+        error.message.includes("not authenticated")
+      ) {
+        router.push("/signin");
       }
     }
   };
@@ -137,23 +170,26 @@ export default function BookPage({ params }: BookPageProps) {
       await chaptersAPI.likeChapter(chapterId);
       fetchBookData(); // Refresh to get updated like count
     } catch (error) {
-      console.error('Error liking chapter:', error);
-      if (error instanceof Error && error.message.includes('not authenticated')) {
-        router.push('/signin');
+      console.error("Error liking chapter:", error);
+      if (
+        error instanceof Error &&
+        error.message.includes("not authenticated")
+      ) {
+        router.push("/signin");
       }
     }
   };
 
   const getNextChapterNumber = () => {
     if (chapters.length === 0) return 1;
-    return Math.max(...chapters.map(c => c.chapterNumber)) + 1;
+    return Math.max(...chapters.map((c) => c.chapterNumber)) + 1;
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -196,8 +232,13 @@ export default function BookPage({ params }: BookPageProps) {
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-white flex items-center justify-center">
         <div className="text-center">
           <Book className="mx-auto text-gray-400 mb-4" size={64} />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Book not found</h3>
-          <p className="text-gray-600 mb-6">The book you're looking for doesn't exist or you don't have permission to view it.</p>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Book not found
+          </h3>
+          <p className="text-gray-600 mb-6">
+            The book you're looking for doesn't exist or you don't have
+            permission to view it.
+          </p>
           <Link
             href="/books"
             className="inline-flex items-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-full font-medium hover:bg-amber-800 transition-colors"
@@ -241,18 +282,20 @@ export default function BookPage({ params }: BookPageProps) {
 
               {/* Status Badge */}
               <div className="absolute top-4 left-4">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  book.isCompleted 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-blue-100 text-blue-800'
-                }`}>
-                  {book.isCompleted ? 'Completed' : 'In Progress'}
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    book.isCompleted
+                      ? "bg-green-100 text-green-800"
+                      : "bg-blue-100 text-blue-800"
+                  }`}
+                >
+                  {book.isCompleted ? "Completed" : "In Progress"}
                 </span>
               </div>
 
               {/* Visibility Badge */}
               <div className="absolute top-4 right-4">
-                {book.visibility === 'private' ? (
+                {book.visibility === "private" ? (
                   <div className="bg-white bg-opacity-90 rounded-full p-2">
                     <EyeOff className="text-gray-600" size={20} />
                   </div>
@@ -296,13 +339,17 @@ export default function BookPage({ params }: BookPageProps) {
 
             {/* Synopsis */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Synopsis</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Synopsis
+              </h3>
               <p className="text-gray-700 leading-relaxed">{book.synopsis}</p>
             </div>
 
             {/* Genres */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Genres</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Genres
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {book.genres.map((genre) => (
                   <span
@@ -319,25 +366,33 @@ export default function BookPage({ params }: BookPageProps) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="text-center p-4 bg-white rounded-lg border border-amber-100">
                 <BookOpen className="mx-auto text-amber-600 mb-2" size={24} />
-                <div className="text-2xl font-bold text-gray-900">{chapters.length}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {chapters.length}
+                </div>
                 <div className="text-sm text-gray-600">Chapters</div>
               </div>
 
               <div className="text-center p-4 bg-white rounded-lg border border-amber-100">
                 <Heart className="mx-auto text-red-500 mb-2" size={24} />
-                <div className="text-2xl font-bold text-gray-900">{book.likes.length}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {book.likes.length}
+                </div>
                 <div className="text-sm text-gray-600">Likes</div>
               </div>
 
               <div className="text-center p-4 bg-white rounded-lg border border-amber-100">
                 <FileText className="mx-auto text-blue-500 mb-2" size={24} />
-                <div className="text-2xl font-bold text-gray-900">{book.totalWordCount || 0}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {book.totalWordCount || 0}
+                </div>
                 <div className="text-sm text-gray-600">Words</div>
               </div>
 
               <div className="text-center p-4 bg-white rounded-lg border border-amber-100">
                 <Calendar className="mx-auto text-green-500 mb-2" size={24} />
-                <div className="text-sm font-medium text-gray-900">{formatDate(book.createdAt)}</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {formatDate(book.createdAt)}
+                </div>
                 <div className="text-sm text-gray-600">Created</div>
               </div>
             </div>
@@ -348,13 +403,45 @@ export default function BookPage({ params }: BookPageProps) {
                 onClick={handleLikeBook}
                 className="flex items-center gap-2 px-6 py-3 border border-amber-200 rounded-lg hover:bg-amber-50 transition-colors"
               >
-                <Heart size={20} className={book.likes.length > 0 ? 'fill-red-500 text-red-500' : ''} />
+                <Heart
+                  size={20}
+                  className={
+                    book.likes.length > 0 ? "fill-red-500 text-red-500" : ""
+                  }
+                />
                 Like ({book.likes.length})
               </button>
 
+              {/* Report button - only show if not owner and user is logged in */}
+              {user && !isOwner && (
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  title="Report this book"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-5 h-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 3l1.664 6L3 15l13.333-6L3 3z"
+                    />
+                  </svg>
+                  Report
+                </button>
+              )}
+
               {isOwner && (
                 <Link
-                  href={`/chapters/create?bookId=${book._id}&chapterNumber=${getNextChapterNumber()}`}
+                  href={`/chapters/create?bookId=${
+                    book._id
+                  }&chapterNumber=${getNextChapterNumber()}`}
                   className="flex items-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-amber-800 transition-colors"
                 >
                   <Plus size={20} />
@@ -371,7 +458,9 @@ export default function BookPage({ params }: BookPageProps) {
             <h2 className="text-2xl font-bold text-gray-900">Chapters</h2>
             {isOwner && chapters.length > 0 && (
               <Link
-                href={`/chapters/create?bookId=${book._id}&chapterNumber=${getNextChapterNumber()}`}
+                href={`/chapters/create?bookId=${
+                  book._id
+                }&chapterNumber=${getNextChapterNumber()}`}
                 className="flex items-center gap-2 bg-amber-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-amber-800 transition-colors"
               >
                 <Plus size={16} />
@@ -383,8 +472,12 @@ export default function BookPage({ params }: BookPageProps) {
           {chapters.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="mx-auto text-gray-400 mb-4" size={48} />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No chapters yet</h3>
-              <p className="text-gray-600 mb-6">Start writing your story by adding the first chapter.</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No chapters yet
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Start writing your story by adding the first chapter.
+              </p>
               {isOwner && (
                 <Link
                   href={`/chapters/create?bookId=${book._id}&chapterNumber=1`}
@@ -419,13 +512,12 @@ export default function BookPage({ params }: BookPageProps) {
         <div className="fixed inset-0 backdrop-blur-sm bg-white/10 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {deleteChapterId ? 'Delete Chapter' : 'Delete Book'}
+              {deleteChapterId ? "Delete Chapter" : "Delete Book"}
             </h3>
             <p className="text-gray-600 mb-6">
               {deleteChapterId
-                ? 'Are you sure you want to delete this chapter? This action cannot be undone.'
-                : 'Are you sure you want to delete this book and all its chapters? This action cannot be undone.'
-              }
+                ? "Are you sure you want to delete this chapter? This action cannot be undone."
+                : "Are you sure you want to delete this book and all its chapters? This action cannot be undone."}
             </p>
 
             <div className="flex gap-3">
@@ -439,7 +531,9 @@ export default function BookPage({ params }: BookPageProps) {
                 Cancel
               </button>
               <button
-                onClick={deleteChapterId ? handleDeleteChapter : handleDeleteBook}
+                onClick={
+                  deleteChapterId ? handleDeleteChapter : handleDeleteBook
+                }
                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Delete
@@ -447,6 +541,17 @@ export default function BookPage({ params }: BookPageProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Report Modal */}
+      {user && !isOwner && book && (
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          targetType="userbook"
+          targetId={resolvedParams.id}
+          targetTitle={book?.title}
+        />
       )}
     </div>
   );
@@ -462,10 +567,10 @@ interface ChapterCardProps {
 
 function ChapterCard({ chapter, isOwner, onLike, onDelete }: ChapterCardProps) {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -478,9 +583,9 @@ function ChapterCard({ chapter, isOwner, onLike, onDelete }: ChapterCardProps) {
               <span className="text-sm font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded">
                 Chapter {chapter.chapterNumber}
               </span>
-              {!chapter.isPublished && (
+              {chapter.visibility === "private" && (
                 <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  Draft
+                  Private
                 </span>
               )}
             </div>
@@ -493,8 +598,7 @@ function ChapterCard({ chapter, isOwner, onLike, onDelete }: ChapterCardProps) {
             <p className="text-gray-600 text-sm mb-3 line-clamp-2">
               {chapter.content
                 ? `${chapter.content.substring(0, 150)}...`
-                : "Click to read this chapter..."
-              }
+                : "Click to read this chapter..."}
             </p>
           </Link>
 
@@ -516,7 +620,12 @@ function ChapterCard({ chapter, isOwner, onLike, onDelete }: ChapterCardProps) {
               }}
               className="flex items-center gap-1 hover:text-red-500 transition-colors"
             >
-              <Heart size={14} className={chapter.likes.length > 0 ? 'fill-red-500 text-red-500' : ''} />
+              <Heart
+                size={14}
+                className={
+                  chapter.likes.length > 0 ? "fill-red-500 text-red-500" : ""
+                }
+              />
               <span>{chapter.likes.length}</span>
             </button>
           </div>
