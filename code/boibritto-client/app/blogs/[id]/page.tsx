@@ -1,15 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import axios from "axios";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { initFirebase } from "@/lib/googleAuth";
 import Image from "next/image";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
+import ReportModal from "@/components/ui/ReportModal";
+
 
 // Initialize Firebase
 initFirebase();
@@ -34,14 +35,14 @@ interface Blog {
 }
 
 export default function BlogViewPage() {
-  const router = useRouter();
   const params = useParams();
   const blogId = params?.id as string;
 
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     if (blogId) {
@@ -207,12 +208,42 @@ export default function BlogViewPage() {
               </div>
             </div>
 
-            {/* Edit/Delete buttons for author */}
-            {isAuthor && (
-              <div className="flex items-center gap-2">
+            {/* Action buttons */}
+            <div className="flex items-center gap-3">
+              {/* Report button - only show if not author and user is logged in */}
+              {currentUser && !isAuthor && (
+                <button
+                  onClick={() => {
+                    console.log('Report button clicked, blogId:', blogId);
+                    console.log('blog object:', blog);
+                    setShowReportModal(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-700 text-white border border-amber-700 rounded-lg hover:bg-amber-800 hover:border-amber-800 transition-all duration-200 font-medium text-sm shadow-sm"
+                  title="Report this blog"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 3l1.664 6L3 15l13.333-6L3 3z"
+                    />
+                  </svg>
+                  Report
+                </button>
+              )}
+
+              {/* Edit/Delete buttons for author */}
+              {isAuthor && (
                 <Link
                   href={`/blogs/write?id=${blog._id}`}
-                  className="p-2 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded-md transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300 transition-all duration-200 font-medium text-sm shadow-sm"
                   title="Edit blog"
                 >
                   <svg
@@ -221,7 +252,7 @@ export default function BlogViewPage() {
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
                     stroke="currentColor"
-                    className="w-5 h-5"
+                    className="w-4 h-4"
                   >
                     <path
                       strokeLinecap="round"
@@ -229,9 +260,10 @@ export default function BlogViewPage() {
                       d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
                     />
                   </svg>
+                  Edit Blog
                 </Link>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Genres and Spoiler Alert */}
@@ -388,6 +420,17 @@ export default function BlogViewPage() {
           </Link>
         </div>
       </div>
+
+      {/* Report Modal */}
+      {currentUser && !isAuthor && (
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          targetType="blog"
+          targetId={blogId || ""}
+          targetTitle={blog?.title}
+        />
+      )}
     </div>
   );
 }

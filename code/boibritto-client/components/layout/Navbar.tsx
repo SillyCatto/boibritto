@@ -85,6 +85,9 @@ export default function Navbar() {
               <Link href="/explore" className={getLinkStyles("/explore")}>
                 Explore
               </Link>
+              <Link href="/books" className={getLinkStyles("/books")}>
+                Books
+              </Link>
               <Link
                 href="/collections"
                 className={getLinkStyles("/collections")}
@@ -108,7 +111,6 @@ export default function Navbar() {
                 className="flex items-center gap-2 focus:outline-none"
                 onClick={() => setMenuOpen((v) => !v)}
               >
-                {/* User profile section - unchanged */}
                 {user.photoURL ? (
                   <Image
                     src={user.photoURL}
@@ -147,12 +149,11 @@ export default function Navbar() {
                   />
                 </svg>
               </button>
-              {/* Dropdown menu - unchanged */}
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-65 bg-white rounded-xl shadow-lg border border-gray-100 z-50">
-                  {/* Dropdown content - unchanged */}
                   <div className="p-4 border-b">
-                    {/* User info - unchanged */}
+                    <p className="font-medium text-gray-900">{user.displayName}</p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
                   </div>
                   <Link
                     href="/profile"
@@ -164,6 +165,35 @@ export default function Navbar() {
                     onClick={() => setMenuOpen(false)}
                   >
                     Profile
+                  </Link>
+                  <Link
+                    href="/books?author=me"
+                    className="block px-6 py-3 text-gray-700 hover:bg-amber-50"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    My Books
+                  </Link>
+                  <Link
+                    href="/my-collections"
+                    className={`block px-6 py-3 ${
+                      isActive("/my-collections")
+                        ? "text-amber-700 bg-amber-50"
+                        : "text-gray-700 hover:bg-amber-50"
+                    }`}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    My Collections
+                  </Link>
+                  <Link
+                    href="/readingitems"
+                    className={`block px-6 py-3 ${
+                      isActive("/readingitems")
+                        ? "text-amber-700 bg-amber-50"
+                        : "text-gray-700 hover:bg-amber-50"
+                    }`}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Reading List
                   </Link>
                   <button
                     className="w-full text-left px-6 py-3 text-red-600 hover:bg-red-50"
@@ -196,7 +226,7 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile menu button - unchanged */}
+        {/* Mobile menu button */}
         <button
           className="md:hidden"
           onClick={() => setMenuOpen((v) => !v)}
@@ -230,6 +260,7 @@ export default function Navbar() {
                   ? "text-amber-700 font-medium py-2"
                   : "text-gray-900 hover:text-amber-700 font-medium py-2"
               }
+              onClick={() => setMenuOpen(false)}
             >
               Home
             </Link>
@@ -242,8 +273,20 @@ export default function Navbar() {
                       ? "text-amber-700 py-2"
                       : "text-gray-600 hover:text-amber-700 py-2"
                   }
+                  onClick={() => setMenuOpen(false)}
                 >
                   Explore
+                </Link>
+                <Link
+                  href="/books"
+                  className={
+                    isActive("/books")
+                      ? "text-amber-700 py-2"
+                      : "text-gray-600 hover:text-amber-700 py-2"
+                  }
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Books
                 </Link>
                 <Link
                   href="/collections"
@@ -252,6 +295,7 @@ export default function Navbar() {
                       ? "text-amber-700 py-2"
                       : "text-gray-600 hover:text-amber-700 py-2"
                   }
+                  onClick={() => setMenuOpen(false)}
                 >
                   Collections
                 </Link>
@@ -262,6 +306,7 @@ export default function Navbar() {
                       ? "text-amber-700 py-2"
                       : "text-gray-600 hover:text-amber-700 py-2"
                   }
+                  onClick={() => setMenuOpen(false)}
                 >
                   Discussions
                 </Link>
@@ -272,13 +317,10 @@ export default function Navbar() {
                       ? "text-amber-700 py-2"
                       : "text-gray-600 hover:text-amber-700 py-2"
                   }
+                  onClick={() => setMenuOpen(false)}
                 >
                   Blogs
                 </Link>
-              </>
-            )}
-            {user ? (
-              <>
                 <Link
                   href="/profile"
                   className={
@@ -286,8 +328,16 @@ export default function Navbar() {
                       ? "text-amber-700 py-2"
                       : "text-gray-700 hover:text-amber-700 py-2"
                   }
+                  onClick={() => setMenuOpen(false)}
                 >
                   Profile
+                </Link>
+                <Link
+                  href="/books?author=me"
+                  className="text-gray-700 hover:text-amber-700 py-2"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  My Books
                 </Link>
                 <button
                   className="text-red-600 hover:text-red-800 py-2 text-left"
@@ -300,7 +350,8 @@ export default function Navbar() {
                   Sign Out
                 </button>
               </>
-            ) : (
+            )}
+            {!user && (
               <>
                 <Link
                   href="/signin"
@@ -309,6 +360,7 @@ export default function Navbar() {
                       ? "text-amber-800 font-medium py-2"
                       : "text-amber-700 hover:text-amber-800 font-medium py-2"
                   }
+                  onClick={() => setMenuOpen(false)}
                 >
                   Sign In
                 </Link>
@@ -319,6 +371,7 @@ export default function Navbar() {
                       ? "bg-amber-800"
                       : "bg-amber-700 hover:bg-amber-800"
                   } text-white rounded-full px-4 py-2 font-medium text-center transition`}
+                  onClick={() => setMenuOpen(false)}
                 >
                   Sign Up
                 </Link>

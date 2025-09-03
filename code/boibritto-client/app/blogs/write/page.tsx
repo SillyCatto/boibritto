@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import axios from "axios";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initFirebase } from "@/lib/googleAuth";
+import { GENRES } from "@/lib/constants";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
@@ -25,30 +26,13 @@ interface BlogFormData {
   visibility: "public" | "private" | "friends";
 }
 
-// Predefined genres (you might want to fetch these from the backend)
-const AVAILABLE_GENRES = [
-  "Fiction",
-  "Non-Fiction",
-  "Mystery",
-  "Romance",
-  "Science Fiction",
-  "Fantasy",
-  "Biography",
-  "History",
-  "Technology",
-  "Business",
-  "Self-Help",
-  "Health",
-  "Travel",
-  "Cooking",
-  "Art",
-  "Drama",
-  "Poetry",
-  "Horror",
-  "Thriller",
-  "Adventure",
-  "Comedy",
-];
+// Helper function to format genre names for display
+const formatGenreForDisplay = (genre: string): string => {
+  return genre
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
 
 export default function WriteBlogPage() {
   const router = useRouter();
@@ -315,7 +299,7 @@ export default function WriteBlogPage() {
               Genres (Select up to 5)
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3">
-              {AVAILABLE_GENRES.map((genre) => (
+              {GENRES.map((genre) => (
                 <label
                   key={genre}
                   className="flex items-center gap-2 cursor-pointer"
@@ -330,7 +314,7 @@ export default function WriteBlogPage() {
                     }
                     className="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 disabled:opacity-50"
                   />
-                  <span className="text-sm text-gray-700">{genre}</span>
+                  <span className="text-sm text-gray-700">{formatGenreForDisplay(genre)}</span>
                 </label>
               ))}
             </div>
@@ -341,7 +325,7 @@ export default function WriteBlogPage() {
                     key={index}
                     className="inline-flex items-center px-3 py-1 bg-amber-100 text-amber-800 text-sm rounded-full"
                   >
-                    {genre}
+                    {formatGenreForDisplay(genre)}
                     <button
                       type="button"
                       onClick={() => handleGenreChange(genre)}

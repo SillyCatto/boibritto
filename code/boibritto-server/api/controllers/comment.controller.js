@@ -11,27 +11,34 @@ const getCommentsByDiscussion = async (req, res) => {
     // Verify discussion exists and is public
     const discussion = await Discussion.findById(discussionId);
     if (!discussion || discussion.visibility !== "public") {
-      return sendError(res, HTTP.NOT_FOUND, "Discussion not found or not accessible");
+      return sendError(
+        res,
+        HTTP.NOT_FOUND,
+        "Discussion not found or not accessible"
+      );
     }
 
     // Fetch all comments for the discussion
     const allComments = await Comment.find({ discussion: discussionId })
-      .populate("user", "_id username displayName avatar")
+      .populate("user", "_id uid username displayName avatar")
       .sort({ createdAt: 1 }); // Oldest first for better reading flow
 
     // Separate parent comments and replies
-    const parentComments = allComments.filter(comment => !comment.parentComment);
-    const replies = allComments.filter(comment => comment.parentComment);
+    const parentComments = allComments.filter(
+      (comment) => !comment.parentComment
+    );
+    const replies = allComments.filter((comment) => comment.parentComment);
 
     // Build hierarchical structure
-    const commentsWithReplies = parentComments.map(parentComment => {
-      const commentReplies = replies.filter(reply =>
-        reply.parentComment.toString() === parentComment._id.toString()
+    const commentsWithReplies = parentComments.map((parentComment) => {
+      const commentReplies = replies.filter(
+        (reply) =>
+          reply.parentComment.toString() === parentComment._id.toString()
       );
 
       return {
         ...parentComment.toObject(),
-        replies: commentReplies.map(reply => reply.toObject())
+        replies: commentReplies.map((reply) => reply.toObject()),
       };
     });
 
@@ -40,29 +47,46 @@ const getCommentsByDiscussion = async (req, res) => {
     });
   } catch (err) {
     logError("Failed to fetch comments", err);
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to fetch comments");
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to fetch comments"
+    );
   }
 };
 
 const createComment = async (req, res) => {
   try {
-    const { discussionId, content, spoilerAlert, parentComment } = req.body.data || {};
+    const { discussionId, content, spoilerAlert, parentComment } =
+      req.body.data || {};
 
     // Validation
     if (!discussionId || typeof discussionId !== "string") {
       return sendError(res, HTTP.BAD_REQUEST, "Discussion ID is required");
     }
     if (!content || typeof content !== "string" || content.length > 500) {
-      return sendError(res, HTTP.BAD_REQUEST, "Content is required and must be <= 500 characters");
+      return sendError(
+        res,
+        HTTP.BAD_REQUEST,
+        "Content is required and must be <= 500 characters"
+      );
     }
     if (typeof spoilerAlert !== "boolean") {
-      return sendError(res, HTTP.BAD_REQUEST, "spoilerAlert is required and must be boolean");
+      return sendError(
+        res,
+        HTTP.BAD_REQUEST,
+        "spoilerAlert is required and must be boolean"
+      );
     }
 
     // Verify discussion exists and is public
     const discussion = await Discussion.findById(discussionId);
     if (!discussion || discussion.visibility !== "public") {
-      return sendError(res, HTTP.NOT_FOUND, "Discussion not found or not accessible");
+      return sendError(
+        res,
+        HTTP.NOT_FOUND,
+        "Discussion not found or not accessible"
+      );
     }
 
     // If parentComment is provided, validate it exists and enforce 1-level depth
@@ -73,11 +97,19 @@ const createComment = async (req, res) => {
       }
       // Check if parent comment belongs to the same discussion
       if (parent.discussion.toString() !== discussionId) {
-        return sendError(res, HTTP.BAD_REQUEST, "Parent comment must belong to the same discussion");
+        return sendError(
+          res,
+          HTTP.BAD_REQUEST,
+          "Parent comment must belong to the same discussion"
+        );
       }
       // Check if trying to reply to a reply (enforce 1-level depth)
       if (parent.parentComment) {
-        return sendError(res, HTTP.BAD_REQUEST, "Comments can only be 1 level deep (replies to replies are not allowed)");
+        return sendError(
+          res,
+          HTTP.BAD_REQUEST,
+          "Comments can only be 1 level deep (replies to replies are not allowed)"
+        );
       }
     }
 
@@ -91,8 +123,10 @@ const createComment = async (req, res) => {
     });
 
     // Populate user data for response
-    const populatedComment = await Comment.findById(comment._id)
-      .populate("user", "_id username displayName avatar");
+    const populatedComment = await Comment.findById(comment._id).populate(
+      "user",
+      "_id uid username displayName avatar"
+    );
 
     return sendSuccess(res, HTTP.CREATED, "Comment created successfully", {
       comment: populatedComment,
@@ -103,7 +137,11 @@ const createComment = async (req, res) => {
       return sendError(res, HTTP.BAD_REQUEST, err.message);
     }
     logError("Failed to create comment", err);
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to create comment");
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to create comment"
+    );
   }
 };
 
@@ -120,13 +158,21 @@ const updateComment = async (req, res) => {
 
     // Check if user is the owner
     if (comment.user.toString() !== req.user._id.toString()) {
-      return sendError(res, HTTP.FORBIDDEN, "You can only update your own comments");
+      return sendError(
+        res,
+        HTTP.FORBIDDEN,
+        "You can only update your own comments"
+      );
     }
 
     // Validation for content if provided
     if (content !== undefined) {
       if (typeof content !== "string" || content.length > 500) {
-        return sendError(res, HTTP.BAD_REQUEST, "Content must be a string and <= 500 characters");
+        return sendError(
+          res,
+          HTTP.BAD_REQUEST,
+          "Content must be a string and <= 500 characters"
+        );
       }
     }
 
@@ -142,22 +188,29 @@ const updateComment = async (req, res) => {
 
     // If no fields to update
     if (Object.keys(updateData).length === 0) {
-      return sendError(res, HTTP.BAD_REQUEST, "No valid fields provided for update");
+      return sendError(
+        res,
+        HTTP.BAD_REQUEST,
+        "No valid fields provided for update"
+      );
     }
 
     // Update the comment
-    const updatedComment = await Comment.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    ).populate("user", "_id username displayName avatar");
+    const updatedComment = await Comment.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    }).populate("user", "_id uid username displayName avatar");
 
     return sendSuccess(res, HTTP.OK, "Comment updated successfully", {
       comment: updatedComment,
     });
   } catch (err) {
     logError("Failed to update comment", err);
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to update comment");
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to update comment"
+    );
   }
 };
 
@@ -173,7 +226,11 @@ const deleteComment = async (req, res) => {
 
     // Check if user is the owner
     if (comment.user.toString() !== req.user._id.toString()) {
-      return sendError(res, HTTP.FORBIDDEN, "You can only delete your own comments");
+      return sendError(
+        res,
+        HTTP.FORBIDDEN,
+        "You can only delete your own comments"
+      );
     }
 
     // If it's a parent comment, find all its replies
@@ -199,7 +256,11 @@ const deleteComment = async (req, res) => {
     return sendSuccess(res, HTTP.OK, message, responseData);
   } catch (err) {
     logError("Failed to delete comment", err);
-    return sendError(res, HTTP.INTERNAL_SERVER_ERROR, "Failed to delete comment");
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to delete comment"
+    );
   }
 };
 

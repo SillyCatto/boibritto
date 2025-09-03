@@ -132,3 +132,4 @@ out/
 # Other
 .grunt/
 lib-cov/
+code/boibritto-server/storage.rules

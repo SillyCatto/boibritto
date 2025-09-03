@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { auth } from "@/lib/googleAuth";
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import axios from "axios";
 import { fetchBookDetails } from "@/lib/googleBooks";
 
@@ -32,7 +32,7 @@ interface RecommendedBook {
       thumbnail?: string;
     };
   };
-  source: 'reading-list' | 'collection' | 'tag' | 'recent';
+  source: 'reading-list' | 'collection' | 'activity' | 'mixed';
 }
 
 const GENRES = [
@@ -220,23 +220,28 @@ export default function ExplorePage() {
   // Tab state
   const [activeTab, setActiveTab] = useState<'for-you' | 'explore'>('for-you');
   
+  // Auth state
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  
   // Recommendation states
   const [readingListRecommendations, setReadingListRecommendations] = useState<RecommendedBook[]>([]);
   const [collectionRecommendations, setCollectionRecommendations] = useState<RecommendedBook[]>([]);
-  const [tagBasedRecommendations, setTagBasedRecommendations] = useState<RecommendedBook[]>([]);
-  const [recentRecommendations, setRecentRecommendations] = useState<RecommendedBook[]>([]);
+  const [activityBasedRecommendations, setActivityBasedRecommendations] = useState<RecommendedBook[]>([]);
+  const [mixedRecommendations, setMixedRecommendations] = useState<RecommendedBook[]>([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [hasReadingList, setHasReadingList] = useState(false);
   const [hasCollections, setHasCollections] = useState(false);
   const [hasUserData, setHasUserData] = useState(false);
   const [userTopTag, setUserTopTag] = useState<string>("");
+  const [recommendationsInitialized, setRecommendationsInitialized] = useState(false);
   
   // Expansion states
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({
     'reading-list': false,
     'collection': false,
-    'tag': false,
-    'recent': false,
+    'activity': false,
+    'mixed': false,
   });
   
   // Loading more states
@@ -244,14 +249,14 @@ export default function ExplorePage() {
   const [hasMore, setHasMore] = useState<{[key: string]: boolean}>({
     'reading-list': true,
     'collection': true,
-    'tag': true,
-    'recent': true,
+    'activity': true,
+    'mixed': true,
   });
   const [pageCounters, setPageCounters] = useState<{[key: string]: number}>({
     'reading-list': 0,
     'collection': 0,
-    'tag': 0,
-    'recent': 0,
+    'activity': 0,
+    'mixed': 0,
   });
   
   // Show all genres in the main view instead of splitting them
@@ -259,13 +264,37 @@ export default function ExplorePage() {
   const extraGenres: string[] = [];
   const [showAllGenres, setShowAllGenres] = useState(false);
 
+  // Initialize Firebase Auth
+  useEffect(() => {
+    const auth = getAuth();
+    
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log('Auth state changed:', firebaseUser?.uid || 'No user');
+      setUser(firebaseUser);
+      setAuthLoading(false);
+      
+      // Fetch recommendations when user is authenticated
+      if (firebaseUser && !recommendationsInitialized) {
+        fetchRecommendations(firebaseUser);
+      } else if (!firebaseUser) {
+        // Reset state when user is not authenticated
+        setHasUserData(false);
+        setHasReadingList(false);
+        setHasCollections(false);
+        setRecommendationsInitialized(false);
+        setReadingListRecommendations([]);
+        setCollectionRecommendations([]);
+        setActivityBasedRecommendations([]);
+        setMixedRecommendations([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [recommendationsInitialized]);
+
   useEffect(() => {
     fetchBooks();
   }, [category, currentPage]); // Fetch books when category or page changes
-
-  useEffect(() => {
-    fetchRecommendations();
-  }, []); // Fetch recommendations on component mount
 
   const fetchBooks = async () => {
     setLoading(true);
@@ -298,17 +327,22 @@ export default function ExplorePage() {
     }
   };
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = async (firebaseUser?: any) => {
+    if (recommendationsInitialized) return;
+    
     setLoadingRecommendations(true);
+    console.log('Fetching recommendations for user:', firebaseUser?.uid || user?.uid);
     
     try {
-      const user = auth.currentUser;
-      if (!user) {
+      const currentUser = firebaseUser || user;
+      if (!currentUser) {
+        console.log('No user available for recommendations');
         setLoadingRecommendations(false);
         return;
       }
 
-      const token = await user.getIdToken();
+      const token = await currentUser.getIdToken();
+      console.log('Got user token, making API calls...');
       
       // Fetch user's reading list, collections, and reading stats
       const [readingListRes, collectionsRes, statsRes] = await Promise.all([
@@ -318,27 +352,43 @@ export default function ExplorePage() {
             headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,
           }
-        ).catch(() => ({ data: { success: false } })),
+        ).catch((error) => {
+          console.error('Reading list API error:', error);
+          return { data: { success: false } };
+        }),
         axios.get(
           `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/collections?owner=me`,
           {
             headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,
           }
-        ).catch(() => ({ data: { success: false } })),
+        ).catch((error) => {
+          console.error('Collections API error:', error);
+          return { data: { success: false } };
+        }),
         axios.get(
           `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"}/api/reading-list/recommendations`,
           {
             headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,
           }
-        ).catch(() => ({ data: { success: false } }))
+        ).catch((error) => {
+          console.error('Stats API error:', error);
+          return { data: { success: false } };
+        })
       ]);
+
+      console.log('API responses:', {
+        readingList: readingListRes.data.success,
+        collections: collectionsRes.data.success,
+        stats: statsRes.data.success
+      });
 
       // Process reading list
       const readingList = readingListRes.data.success ? readingListRes.data.data.readingList || [] : [];
       const readingListBookIds = readingList.map((item: any) => item.volumeId).filter(Boolean);
       setHasReadingList(readingListBookIds.length > 0);
+      console.log('Reading list book IDs:', readingListBookIds.length);
 
       // Process collections
       const collections = collectionsRes.data.success ? collectionsRes.data.data.collections || [] : [];
@@ -346,9 +396,12 @@ export default function ExplorePage() {
         (collection.books || []).map((book: any) => book.volumeId)
       ).filter(Boolean);
       setHasCollections(allCollectionBooks.length > 0);
+      console.log('Collection book IDs:', allCollectionBooks.length);
 
       // Check if user has any data
-      setHasUserData(readingListBookIds.length > 0 || allCollectionBooks.length > 0);
+      const userHasData = readingListBookIds.length > 0 || allCollectionBooks.length > 0;
+      setHasUserData(userHasData);
+      console.log('User has data:', userHasData);
 
       // Get user's top tag for recommendations
       let topTag = "";
@@ -371,11 +424,13 @@ export default function ExplorePage() {
         if (sortedTags.length > 0) {
           topTag = sortedTags[0][0];
           setUserTopTag(topTag);
+          console.log('User top tag:', topTag);
         }
       }
 
       // READING LIST RECOMMENDATIONS
       if (readingListBookIds.length > 0) {
+        console.log('Fetching reading list recommendations...');
         const randomReadingListId = readingListBookIds[Math.floor(Math.random() * readingListBookIds.length)];
         try {
           const randomBookDetails = await fetchBookDetails(randomReadingListId);
@@ -390,6 +445,7 @@ export default function ExplorePage() {
                 const readingListRecs = data.items
                   .map((item: any) => ({ ...item, source: 'reading-list' as const }));
                 setReadingListRecommendations(readingListRecs);
+                console.log('Set reading list recommendations:', readingListRecs.length);
               }
             }
           }
@@ -400,6 +456,7 @@ export default function ExplorePage() {
 
       // COLLECTION RECOMMENDATIONS
       if (allCollectionBooks.length > 0) {
+        console.log('Fetching collection recommendations...');
         const randomCollectionId = allCollectionBooks[Math.floor(Math.random() * allCollectionBooks.length)];
         try {
           const randomBookDetails = await fetchBookDetails(randomCollectionId);
@@ -415,6 +472,7 @@ export default function ExplorePage() {
                   .filter((item: any) => !readingListRecommendations.some(b => b.id === item.id))
                   .map((item: any) => ({ ...item, source: 'collection' as const }));
                 setCollectionRecommendations(collectionRecs);
+                console.log('Set collection recommendations:', collectionRecs.length);
               }
             }
           }
@@ -423,46 +481,67 @@ export default function ExplorePage() {
         }
       }
 
-      // TAG-BASED RECOMMENDATIONS
+      // ACTIVITY-BASED RECOMMENDATIONS (Based on user's reading activity)
       if (topTag) {
+        console.log('Fetching activity-based recommendations...');
         try {
-          const tagRecResponse = await fetch(
-            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(topTag)}&maxResults=16&startIndex=0&orderBy=relevance`
+          const activityRecResponse = await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(topTag)}&maxResults=16&startIndex=0&orderBy=newest`
           );
-          if (tagRecResponse.ok) {
-            const data = await tagRecResponse.json();
+          if (activityRecResponse.ok) {
+            const data = await activityRecResponse.json();
             if (data.items) {
-              const tagRecs = data.items
-                .map((item: any) => ({ ...item, source: 'tag' as const }));
-              setTagBasedRecommendations(tagRecs);
+              const activityRecs = data.items
+                .map((item: any) => ({ ...item, source: 'activity' as const }));
+              setActivityBasedRecommendations(activityRecs);
+              console.log('Set activity-based recommendations:', activityRecs.length);
             }
           }
         } catch (error) {
-          console.error("Error fetching tag-based recommendations:", error);
-        }
-
-        // RECENT BOOKS BASED ON TAGS
-        try {
-          const recentRecResponse = await fetch(
-            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(topTag)}&maxResults=16&startIndex=0&orderBy=newest&printType=books`
-          );
-          if (recentRecResponse.ok) {
-            const data = await recentRecResponse.json();
-            if (data.items) {
-              const recentRecs = data.items
-                .filter((item: any) => {
-                  return !readingListRecommendations.some(b => b.id === item.id) &&
-                         !collectionRecommendations.some(b => b.id === item.id) &&
-                         !tagBasedRecommendations.some(b => b.id === item.id);
-                })
-                .map((item: any) => ({ ...item, source: 'recent' as const }));
-              setRecentRecommendations(recentRecs);
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching recent recommendations:", error);
+          console.error("Error fetching activity-based recommendations:", error);
         }
       }
+
+      // MIXED RECOMMENDATIONS (Books For You - mixture of different categories)
+      console.log('Fetching mixed recommendations...');
+      try {
+        // Get a mixture of different genres/categories
+        const mixedCategories = ['fiction', 'mystery', 'biography', 'science', 'fantasy'];
+        const randomCategory = mixedCategories[Math.floor(Math.random() * mixedCategories.length)];
+        
+        // If user has a top tag, mix it with random categories
+        const searchTerm = topTag ? `${topTag} OR ${randomCategory}` : randomCategory;
+        
+        const mixedRecResponse = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchTerm)}&maxResults=32&startIndex=0&orderBy=relevance`
+        );
+        
+        if (mixedRecResponse.ok) {
+          const data = await mixedRecResponse.json();
+          if (data.items) {
+            // Filter out books already in other recommendations and shuffle for variety
+            const allExistingBooks = [
+              ...readingListRecommendations,
+              ...collectionRecommendations,
+              ...activityBasedRecommendations
+            ];
+            
+            const mixedRecs = data.items
+              .filter((item: any) => !allExistingBooks.some(b => b.id === item.id))
+              .map((item: any) => ({ ...item, source: 'mixed' as const }))
+              .sort(() => Math.random() - 0.5) // Shuffle the results
+              .slice(0, 16); // Take only 16 books
+            
+            setMixedRecommendations(mixedRecs);
+            console.log('Set mixed recommendations:', mixedRecs.length);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching mixed recommendations:", error);
+      }
+
+      setRecommendationsInitialized(true);
+      console.log('Recommendations initialization complete');
 
     } catch (error) {
       console.error("Error fetching recommendations:", error);
@@ -497,12 +576,14 @@ export default function ExplorePage() {
         case 'collection':
           searchQuery = `subject:literature`;
           break;
-        case 'tag':
-          searchQuery = userTopTag || 'fiction';
-          break;
-        case 'recent':
+        case 'activity':
           searchQuery = userTopTag || 'fiction';
           orderBy = 'newest';
+          break;
+        case 'mixed':
+          const mixedCategories = ['fiction', 'mystery', 'biography', 'science', 'fantasy', 'romance', 'thriller'];
+          const randomCategory = mixedCategories[Math.floor(Math.random() * mixedCategories.length)];
+          searchQuery = userTopTag ? `${userTopTag} OR ${randomCategory}` : randomCategory;
           break;
       }
       
@@ -516,12 +597,17 @@ export default function ExplorePage() {
           if (data.items && data.items.length > 0) {
             const currentBooks = sectionKey === 'reading-list' ? readingListRecommendations :
                                sectionKey === 'collection' ? collectionRecommendations :
-                               sectionKey === 'tag' ? tagBasedRecommendations :
-                               recentRecommendations;
+                               sectionKey === 'activity' ? activityBasedRecommendations :
+                               mixedRecommendations;
             
             const newBooks = data.items
               .filter((item: any) => !currentBooks.some(b => b.id === item.id))
               .map((item: any) => ({ ...item, source: sectionKey as any }));
+            
+            // For mixed recommendations, shuffle the new books
+            if (sectionKey === 'mixed') {
+              newBooks.sort(() => Math.random() - 0.5);
+            }
             
             // Update the appropriate state
             switch (sectionKey) {
@@ -531,11 +617,11 @@ export default function ExplorePage() {
               case 'collection':
                 setCollectionRecommendations(prev => [...prev, ...newBooks]);
                 break;
-              case 'tag':
-                setTagBasedRecommendations(prev => [...prev, ...newBooks]);
+              case 'activity':
+                setActivityBasedRecommendations(prev => [...prev, ...newBooks]);
                 break;
-              case 'recent':
-                setRecentRecommendations(prev => [...prev, ...newBooks]);
+              case 'mixed':
+                setMixedRecommendations(prev => [...prev, ...newBooks]);
                 break;
             }
             
@@ -652,10 +738,36 @@ export default function ExplorePage() {
       {activeTab === 'for-you' ? (
         // FOR YOU TAB
         <div className="max-w-7xl mx-auto px-6 py-8">
-          {hasUserData ? (
+          {authLoading ? (
+            <div className="flex justify-center py-20">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading your profile...</p>
+              </div>
+            </div>
+          ) : !user ? (
+            <div className="text-center py-20">
+              <div className="text-gray-400 mb-6">
+                <svg className="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-medium text-gray-700 mb-4">Sign in to get personalized recommendations</h3>
+              <p className="text-gray-600 mb-8">Create an account or sign in to see books curated just for you</p>
+              <Link
+                href="/signin"
+                className="px-6 py-3 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition-colors font-medium"
+              >
+                Sign In
+              </Link>
+            </div>
+          ) : hasUserData ? (
             loadingRecommendations ? (
               <div className="flex justify-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700"></div>
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Loading personalized recommendations...</p>
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
@@ -663,6 +775,27 @@ export default function ExplorePage() {
                   <h2 className="text-2xl font-bold text-gray-800 mb-2">Personalized Recommendations</h2>
                   <p className="text-gray-600">Books curated based on your reading activity</p>
                 </div>
+
+                {/* Books For You (Mixed Recommendations) */}
+                <ExpandableSection
+                  title="Books For You"
+                  icon={
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  }
+                  books={mixedRecommendations}
+                  onLoadMore={() => loadMoreBooks('mixed')}
+                  loading={loadingMore['mixed'] || false}
+                  hasMore={hasMore['mixed'] || false}
+                  expanded={expandedSections['mixed'] || false}
+                  onToggle={() => toggleSection('mixed')}
+                  emptyMessage="Start reading books to get personalized recommendations"
+                  emptyAction={{
+                    text: "Explore Books",
+                    href: "#"
+                  }}
+                />
 
                 {/* Reading List Recommendations */}
                 <ExpandableSection
@@ -706,42 +839,25 @@ export default function ExplorePage() {
                   }}
                 />
 
-                {/* Tag-based Recommendations */}
+                {/* Activity-based Recommendations */}
                 <ExpandableSection
-                  title="Books For You"
+                  title="Based on Your Activity"
                   icon={
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   }
-                  books={tagBasedRecommendations}
-                  onLoadMore={() => loadMoreBooks('tag')}
-                  loading={loadingMore['tag'] || false}
-                  hasMore={hasMore['tag'] || false}
-                  expanded={expandedSections['tag'] || false}
-                  onToggle={() => toggleSection('tag')}
-                  emptyMessage="Start reading books to get personalized tag-based recommendations"
+                  books={activityBasedRecommendations}
+                  onLoadMore={() => loadMoreBooks('activity')}
+                  loading={loadingMore['activity'] || false}
+                  hasMore={hasMore['activity'] || false}
+                  expanded={expandedSections['activity'] || false}
+                  onToggle={() => toggleSection('activity')}
+                  emptyMessage="Start reading books to get activity-based recommendations"
                   emptyAction={{
                     text: "Explore Books",
                     href: "#"
                   }}
-                />
-
-                {/* Recent Books */}
-                <ExpandableSection
-                  title="Recent Books"
-                  icon={
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  }
-                  books={recentRecommendations}
-                  onLoadMore={() => loadMoreBooks('recent')}
-                  loading={loadingMore['recent'] || false}
-                  hasMore={hasMore['recent'] || false}
-                  expanded={expandedSections['recent'] || false}
-                  onToggle={() => toggleSection('recent')}
-                  emptyMessage="Latest releases based on your reading preferences"
                 />
               </div>
             )

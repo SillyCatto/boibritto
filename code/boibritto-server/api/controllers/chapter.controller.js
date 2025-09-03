@@ -12,7 +12,8 @@ const calculateWordCount = (content) => {
 
 const getChaptersForBook = async (req, res) => {
   try {
-    const { bookId } = req.params;
+    // Handle both 'bookId' and 'id' parameters for different route structures
+    const bookId = req.params.bookId || req.params.id;
     const { published } = req.query;
     const userId = req.user?._id;
 

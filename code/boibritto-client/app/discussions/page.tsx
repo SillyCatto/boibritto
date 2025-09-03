@@ -1,120 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/googleAuth";
+import { discussionsAPI, Discussion } from "@/lib/discussionAPI";
+import { commentsAPI } from "@/lib/commentsAPI";
+import { GENRES } from "@/lib/constants";
 
-
-
-// Types
-interface User {
-  _id: string;
-  username: string;
-  displayName: string;
-  avatar: string;
-}
-
-interface Discussion {
-  _id: string;
-  user: User;
-  title: string;
-  content: string;
-  visibility: "private" | "friends" | "public";
-  spoilerAlert: boolean;
-  genres: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Dummy data matching the provided format
-const DUMMY_DISCUSSIONS: Discussion[] = [
-  {
-    _id: "6847133861841477d982ac22",
-    user: {
-      _id: "6843292c5cc2e9ee0b9bc0a9",
-      username: "test",
-      displayName: "TestUser",
-      avatar: "https://ui-avatars.com/api/?name=Test+User&background=random"
-    },
-    title: "Best Fantasy Novels of 2024",
-    content: "My Top Picks\n\nThe Starless Crown by James Rollins is fantastic!\n\nOther recommendations:\n- The Atlas Six by Olivie Blake\n- Book of Night by Holly Black\n- Nettle & Bone by T. Kingfisher",
-    visibility: "public",
-    spoilerAlert: false,
-    genres: ["fantasy", "fiction"],
-    createdAt: "2025-06-09T17:00:40.091Z",
-    updatedAt: "2025-06-09T17:00:40.091Z"
-  },
-  {
-    _id: "68470ca92df9925ccd743b78",
-    user: {
-      _id: "6843292c5cc2e9ee0b9bc0a9",
-      username: "bibliophile",
-      displayName: "Book Lover",
-      avatar: "https://ui-avatars.com/api/?name=Book+Lover&background=amber"
-    },
-    title: "The Ending of 'The Silent Patient' - My Thoughts",
-    content: "Wow, that twist!\n\nI never saw it coming!\n\nThoughts on the ending:\n- The unreliable narrator technique was masterfully done\n- The psychological aspects were well-researched\n- The final reveal changed everything",
-    visibility: "public",
-    spoilerAlert: true,
-    genres: ["thriller", "mystery"],
-    createdAt: "2025-06-09T16:32:41.983Z",
-    updatedAt: "2025-06-09T16:32:41.983Z"
-  },
-  {
-    _id: "68470ca92df9925ccd743b79",
-    user: {
-      _id: "6843292c5cc2e9ee0b9bc0a8",
-      username: "litcritic",
-      displayName: "Literary Critic",
-      avatar: "https://ui-avatars.com/api/?name=Literary+Critic&background=purple"
-    },
-    title: "Is Classic Literature Still Relevant Today?",
-    content: "The importance of classics\n\nI believe classic literature continues to be relevant because:\n1. It offers timeless insights into human nature\n2. It provides historical context to modern issues\n3. The writing quality often surpasses modern works\n\nWhat do you think? Are classics still worth reading?",
-    visibility: "public",
-    spoilerAlert: false,
-    genres: ["classic", "literature"],
-    createdAt: "2025-06-08T13:24:11.983Z",
-    updatedAt: "2025-06-08T14:15:22.983Z"
-  },
-  {
-    _id: "68470ca92df9925ccd743b80",
-    user: {
-      _id: "6843292c5cc2e9ee0b9bc0a7",
-      username: "scififan",
-      displayName: "SciFi Enthusiast",
-      avatar: "https://ui-avatars.com/api/?name=SciFi+Enthusiast&background=blue"
-    },
-    title: "The Future of AI in Sci-Fi vs Reality",
-    content: "Fiction becoming reality\n\nI've been comparing sci-fi predictions about AI from the past few decades with what we're actually seeing today.\n\nKey observations:\n- Many authors predicted superintelligence but missed the importance of data\n- Few predicted the ethical challenges we're facing\n- The concept of AI companions is evolving differently than in fiction",
-    visibility: "public",
-    spoilerAlert: false,
-    genres: ["sci-fi", "technology"],
-    createdAt: "2025-06-07T09:14:30.983Z",
-    updatedAt: "2025-06-07T09:14:30.983Z"
-  }
-];
-
-// Filter options
-const GENRE_FILTERS = ["All", "Fiction", "Non-fiction", "Fantasy", "Sci-fi", "Mystery", "Classic", "Literature", "Thriller"];
+// Filter options - using the same genres from constants
+const GENRE_FILTERS = ["All", ...GENRES.map(genre => genre.charAt(0).toUpperCase() + genre.slice(1).replace('-', ' '))];
 
 export default function DiscussionsPage() {
+  const [user] = useAuthState(auth);
+  const [discussions, setDiscussions] = useState<Discussion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  
-  // Filter discussions based on genre and search query
-  const filteredDiscussions = DUMMY_DISCUSSIONS.filter(discussion => {
+  const [commentCounts, setCommentCounts] = useState<{ [key: string]: number }>({});
+
+  // Load discussions
+  useEffect(() => {
+    const loadDiscussions = async () => {
+      try {
+        setLoading(true);
+        const params: { search?: string } = {};
+        if (searchQuery.trim()) {
+          params.search = searchQuery.trim();
+        }
+        const response = await discussionsAPI.getDiscussions(params);
+        setDiscussions(response.discussions);
+        
+        // Load comment counts for each discussion
+        const counts: { [key: string]: number } = {};
+        await Promise.all(
+          response.discussions.map(async (discussion) => {
+            try {
+              const commentsResponse = await commentsAPI.getComments(discussion._id);
+              counts[discussion._id] = commentsResponse.comments?.length || 0;
+            } catch (error) {
+              console.error(`Failed to load comments for discussion ${discussion._id}:`, error);
+              counts[discussion._id] = 0;
+            }
+          })
+        );
+        setCommentCounts(counts);
+      } catch (err) {
+        console.error("Failed to load discussions:", err);
+        setError("Failed to load discussions");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      loadDiscussions();
+    }
+  }, [user, searchQuery]);
+
+  // Filter discussions based on genre
+  const filteredDiscussions = discussions.filter(discussion => {
     const matchesGenre = activeFilter === "All" || 
-      discussion.genres.some(genre => genre.toLowerCase() === activeFilter.toLowerCase());
+      (discussion.genres && discussion.genres.some(genre => 
+        genre.toLowerCase() === activeFilter.toLowerCase().replace(' ', '-')
+      ));
     
-    const matchesSearch = searchQuery === "" || 
-      discussion.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      discussion.content.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesGenre && matchesSearch;
+    return matchesGenre;
   });
 
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // The useEffect will handle the search when searchQuery changes
+  };
+
   // Function to format plain text content with line breaks
-  const formatContent = (content: string) => {
+  const formatContent = (content: string | undefined | null) => {
+    if (!content) return null;
     return content.split('\n').map((paragraph, i) => (
       <p key={i} className="mb-2">
         {paragraph.startsWith('- ') ? (
@@ -140,8 +104,8 @@ export default function DiscussionsPage() {
             and connect with other readers.
           </p>
           
-          {/* Search input */}
-          <div className="relative max-w-md">
+          {/* Search form */}
+          <form onSubmit={handleSearch} className="relative max-w-md">
             <input
               type="text"
               placeholder="Search discussions..."
@@ -150,14 +114,17 @@ export default function DiscussionsPage() {
               className="w-full px-4 py-3 rounded-lg text-gray-800 bg-white 
               focus:outline-none focus:ring-2 focus:ring-amber-500 pr-10"
             />
-            <span className="absolute right-3 top-3 text-gray-400">
+            <button 
+              type="submit"
+              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
               strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" 
                 d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
-            </span>
-          </div>
+            </button>
+          </form>
         </div>
       </div>
       
@@ -168,14 +135,16 @@ export default function DiscussionsPage() {
           <p className="text-gray-500 text-sm mt-1">Join the conversation or start your own</p>
         </div>
         
-        <Link href="/discussions/new" className="bg-amber-700 hover:bg-amber-800 text-white 
-        px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
-          strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Start New Discussion
-        </Link>
+        {user && (
+          <Link href="/discussions/create" className="bg-amber-700 hover:bg-amber-800 text-white 
+          px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
+            strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Start New Discussion
+          </Link>
+        )}
       </div>
       
       {/* Genre filters */}
@@ -201,7 +170,43 @@ export default function DiscussionsPage() {
       
       {/* Discussions list */}
       <div className="max-w-7xl mx-auto px-6 mt-8">
-        {filteredDiscussions.length === 0 ? (
+        {!user ? (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
+            strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-gray-400 mb-4">
+              <path strokeLinecap="round" strokeLinejoin="round" 
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <h3 className="text-xl font-medium text-gray-800 mb-2">Sign in to view discussions</h3>
+            <p className="text-gray-500 max-w-md mx-auto mb-6">
+              Join our community to participate in book discussions and share your thoughts with other readers.
+            </p>
+            <Link href="/signin" className="text-amber-700 hover:text-amber-800 font-medium">
+              Sign in to continue →
+            </Link>
+          </div>
+        ) : loading ? (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700 mx-auto mb-4"></div>
+            <p className="text-gray-500">Loading discussions...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
+            strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-red-400 mb-4">
+              <path strokeLinecap="round" strokeLinejoin="round" 
+              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+            <h3 className="text-xl font-medium text-gray-800 mb-2">Error loading discussions</h3>
+            <p className="text-gray-500 max-w-md mx-auto mb-6">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="text-amber-700 hover:text-amber-800 font-medium"
+            >
+              Try again →
+            </button>
+          </div>
+        ) : filteredDiscussions.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
             strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-gray-400 mb-4">
@@ -210,10 +215,13 @@ export default function DiscussionsPage() {
             </svg>
             <h3 className="text-xl font-medium text-gray-800 mb-2">No discussions found</h3>
             <p className="text-gray-500 max-w-md mx-auto">
-              Try adjusting your search or filters, or start a new discussion to get the conversation going.
+              {searchQuery ? 
+                "Try adjusting your search or filters, or start a new discussion to get the conversation going." :
+                "Be the first to start a discussion about books and reading!"
+              }
             </p>
             <div className="mt-6">
-              <Link href="/discussions/new" className="text-amber-700 hover:text-amber-800 font-medium">
+              <Link href="/discussions/create" className="text-amber-700 hover:text-amber-800 font-medium">
                 Start a new discussion →
               </Link>
             </div>
@@ -230,24 +238,32 @@ export default function DiscussionsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center">
                       <div className="relative h-10 w-10 rounded-full overflow-hidden mr-4">
-                        <Image 
-                          src={discussion.user.avatar} 
-                          alt={discussion.user.displayName}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
+                        {discussion.user?.avatar ? (
+                          <Image 
+                            src={discussion.user.avatar} 
+                            alt={discussion.user?.displayName || 'User'}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-amber-200 flex items-center justify-center">
+                            <span className="text-amber-800 font-semibold text-sm">
+                              {(discussion.user?.displayName || 'U').charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div>
-                        <h3 className="font-medium text-gray-900">{discussion.user.displayName}</h3>
-                        <p className="text-gray-500 text-sm">@{discussion.user.username}</p>   
+                        <h3 className="font-medium text-gray-900">{discussion.user?.displayName || 'Unknown User'}</h3>
+                        <p className="text-gray-500 text-sm">@{discussion.user?.username || 'unknown'}</p>   
             
                         <p className="text-gray-400 text-xs mt-1">
-                          {new Date(discussion.createdAt).toLocaleDateString("en-US", {
+                          {discussion.createdAt ? new Date(discussion.createdAt).toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
                             year: "numeric"
-                          })} 
+                          }) : 'Unknown date'} 
                         </p>
                       </div>
                     </div>
@@ -259,7 +275,7 @@ export default function DiscussionsPage() {
                     )}
                   </div>
                   
-                  <h2 className="text-xl font-semibold text-gray-800 mt-4 mb-2">{discussion.title}</h2>
+                  <h2 className="text-xl font-semibold text-gray-800 mt-4 mb-2">{discussion.title || 'Untitled Discussion'}</h2>
                   
                   <div className="text-gray-600 mt-2 line-clamp-3">
                     {formatContent(discussion.content)}
@@ -267,32 +283,37 @@ export default function DiscussionsPage() {
                   
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex flex-wrap gap-1">
-                      {discussion.genres.map((genre) => (
+                      {(discussion.genres || []).map((genre) => (
                         <span 
                           key={`${discussion._id}-${genre}`}
                           className="bg-amber-50 text-amber-800 text-xs px-2.5 py-0.5 rounded"
                         >
-                          {genre.charAt(0).toUpperCase() + genre.slice(1)}
+                          {genre.charAt(0).toUpperCase() + genre.slice(1).replace('-', ' ')}
                         </span>
                       ))}
                     </div>
                     
-                    <div className="flex items-center space-x-4 text-gray-500">
-                      <span className="flex items-center space-x-1">
+                    {/* Only comment count - removed "Join discussion" part */}
+                    <div className="flex items-center text-gray-500">
+                      <span className="flex items-center space-x-2">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
                         strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                           <path strokeLinecap="round" strokeLinejoin="round" 
                           d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
                         </svg>
-                        <span>{Math.floor(Math.random() * 15)}</span>
-                      </span>
-                      <span className="flex items-center space-x-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
-                        strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                          <path strokeLinecap="round" strokeLinejoin="round" 
-                          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                        </svg>
-                        <span>{Math.floor(Math.random() * 30)}</span>
+                        <span className="text-sm font-medium">
+                          {commentCounts[discussion._id] !== undefined ? (
+                            commentCounts[discussion._id] === 0 ? (
+                              '0 comments'
+                            ) : commentCounts[discussion._id] === 1 ? (
+                              '1 comment'
+                            ) : (
+                              `${commentCounts[discussion._id]} comments`
+                            )
+                          ) : (
+                            'Loading...'
+                          )}
+                        </span>
                       </span>
                     </div>
                   </div>
