@@ -103,6 +103,9 @@ export default function Navbar() {
               >
                 Discussions
               </Link>
+              <Link href="/community" className={getLinkStyles("/community")}>
+                Community
+              </Link>
             </>
           )}
           {user ? (
@@ -152,7 +155,9 @@ export default function Navbar() {
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-65 bg-white rounded-xl shadow-lg border border-gray-100 z-50">
                   <div className="p-4 border-b">
-                    <p className="font-medium text-gray-900">{user.displayName}</p>
+                    <p className="font-medium text-gray-900">
+                      {user.displayName}
+                    </p>
                     <p className="text-sm text-gray-500">{user.email}</p>
                   </div>
                   <Link
@@ -309,6 +314,17 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}
                 >
                   Discussions
+                </Link>
+                <Link
+                  href="/community"
+                  className={
+                    isActive("/community")
+                      ? "text-amber-700 py-2"
+                      : "text-gray-600 hover:text-amber-700 py-2"
+                  }
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Community
                 </Link>
                 <Link
                   href="/blogs"

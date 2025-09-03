@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { Plus, Search, Filter, Book, Eye, EyeOff, Heart, Calendar, User as UserIcon, BookOpen } from 'lucide-react';
 import { userBooksAPI } from '@/lib/userBooksAPI';
@@ -11,6 +11,7 @@ import { GENRES } from '@/lib/constants';
 
 export default function BooksPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [books, setBooks] = useState<UserBook[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +20,21 @@ export default function BooksPage() {
   const [authorFilter, setAuthorFilter] = useState('all'); // 'all', 'me', or specific author
   const [completedFilter, setCompletedFilter] = useState<boolean | undefined>(undefined);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Read URL parameters on mount
+  useEffect(() => {
+    const authorParam = searchParams.get('author');
+    const searchParam = searchParams.get('search');
+    const genreParam = searchParams.get('genre');
+    const completedParam = searchParams.get('completed');
+
+    if (authorParam) setAuthorFilter(authorParam);
+    if (searchParam) setSearchTerm(searchParam);
+    if (genreParam) setSelectedGenre(genreParam);
+    if (completedParam !== null) {
+      setCompletedFilter(completedParam === 'true');
+    }
+  }, [searchParams]);
 
   // Google auth listener - matches your existing pattern
   useEffect(() => {
@@ -96,7 +112,7 @@ export default function BooksPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">User Books</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Community Books</h1>
             <p className="text-gray-600">Discover stories written by our community</p>
           </div>
 
@@ -258,8 +274,8 @@ function BookCard({ book, onLike }: BookCardProps) {
           {/* Status Badge */}
           <div className="absolute top-3 left-3">
             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-              book.isCompleted 
-                ? 'bg-green-100 text-green-800' 
+              book.isCompleted
+                ? 'bg-green-100 text-green-800'
                 : 'bg-blue-100 text-blue-800'
             }`}>
               {book.isCompleted ? 'Completed' : 'In Progress'}

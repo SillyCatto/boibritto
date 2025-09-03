@@ -1,9 +1,9 @@
-import Blog from '../models/blog.models.js';
-import mongoose from 'mongoose';
-import { logError } from '../utils/logger.js';
-import { sendSuccess, sendError } from '../utils/response.js';
-import HTTP from '../utils/httpStatus.js';
-import { GENRES } from '../utils/constants.js';
+import Blog from "../models/blog.models.js";
+import mongoose from "mongoose";
+import { logError } from "../utils/logger.js";
+import { sendSuccess, sendError } from "../utils/response.js";
+import HTTP from "../utils/httpStatus.js";
+import { GENRES } from "../utils/constants.js";
 
 const getBlogsList = async (req, res) => {
   try {
@@ -30,7 +30,7 @@ const getBlogsList = async (req, res) => {
 
     let query = Blog.find(filter).populate(
       "user",
-      "displayName username avatar",
+      "displayName username avatar uid"
     );
 
     // Always apply pagination
@@ -56,7 +56,7 @@ const getOneBlogByID = async (req, res) => {
 
     const blog = await Blog.findById(id).populate(
       "user",
-      "displayName username avatar",
+      "displayName username avatar uid"
     );
     if (!blog) {
       return sendError(res, HTTP.NOT_FOUND, "Blog not found");
@@ -67,7 +67,7 @@ const getOneBlogByID = async (req, res) => {
       return sendError(
         res,
         HTTP.FORBIDDEN,
-        "You do not have access to this blog",
+        "You do not have access to this blog"
       );
     }
 
@@ -109,7 +109,7 @@ const createBlog = async (req, res) => {
     });
 
     await newBlog.save();
-    await newBlog.populate("user", "displayName username avatar");
+    await newBlog.populate("user", "displayName username avatar uid");
 
     return sendSuccess(res, HTTP.CREATED, "Blog created successfully", {
       blog: newBlog,
@@ -143,7 +143,7 @@ const updateBlog = async (req, res) => {
       return sendError(
         res,
         HTTP.FORBIDDEN,
-        "You do not have permission to update this blog",
+        "You do not have permission to update this blog"
       );
     }
 
@@ -155,7 +155,7 @@ const updateBlog = async (req, res) => {
     if (data.genres !== undefined) blog.genres = data.genres;
 
     await blog.save();
-    await blog.populate("user", "displayName username avatar");
+    await blog.populate("user", "displayName username avatar uid");
 
     return sendSuccess(res, HTTP.OK, "Blog updated successfully", { blog });
   } catch (err) {
@@ -182,7 +182,7 @@ const deleteBlog = async (req, res) => {
       return sendError(
         res,
         HTTP.FORBIDDEN,
-        "You do not have permission to delete this blog",
+        "You do not have permission to delete this blog"
       );
     }
 
