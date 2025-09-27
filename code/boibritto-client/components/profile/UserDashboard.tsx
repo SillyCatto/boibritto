@@ -60,7 +60,36 @@ interface Blog {
   updatedAt: string;
 }
 
-const tabs = ["My Collections", "Reading Tracker", "Blogs", "Discussions"];
+interface Discussion {
+  _id: string;
+  title: string;
+  content: string;
+  genres: string[];
+  spoilerAlert: boolean;
+  visibility: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UserBook {
+  _id: string;
+  title: string;
+  synopsis: string;
+  genres: string[];
+  visibility: string;
+  coverImage: string;
+  isCompleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const tabs = [
+  "My Collections",
+  "Reading Tracker",
+  "Blogs",
+  "Discussions",
+  "User Books",
+];
 
 export default function UserDashboard() {
   const [activeTab, setActiveTab] = useState("My Collections");
@@ -68,6 +97,8 @@ export default function UserDashboard() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [readingList, setReadingList] = useState<ReadingItem[]>([]);
   const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [discussions, setDiscussions] = useState<Discussion[]>([]);
+  const [userBooks, setUserBooks] = useState<UserBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingBooks, setLoadingBooks] = useState(false);
   const [error, setError] = useState("");
@@ -125,7 +156,10 @@ export default function UserDashboard() {
                   bookDetails: {
                     title: bookDetails.title,
                     authors: bookDetails.authors || [],
-                    thumbnail: bookDetails.imageLinks?.thumbnail || bookDetails.imageLinks?.smallThumbnail || "",
+                    thumbnail:
+                      bookDetails.imageLinks?.thumbnail ||
+                      bookDetails.imageLinks?.smallThumbnail ||
+                      "",
                   },
                 };
               })
@@ -137,6 +171,8 @@ export default function UserDashboard() {
           setLoadingBooks(false);
 
           setBlogs(data.data.blogs || []);
+          setDiscussions(data.data.discussions || []);
+          setUserBooks(data.data.user_books || []);
         } else {
           setError(data.message || "Failed to load profile data");
         }
@@ -258,20 +294,21 @@ export default function UserDashboard() {
                 <>
                   {collections.map((collection) => (
                     <Link
-                        key={collection._id}
-                        href={`/collections/${collection._id}`}
-                        className="block border p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition"
-                        >
-                    <h3 className="font-semibold text-amber-700">
-                      {collection.title}
-                    </h3>
-                    <p className="text-gray-700 text-sm line-clamp-2">
-                      {collection.description}
-                    </p>
-                    <div className="mt-2 text-xs text-gray-500">
-                      {collection.visibility} • {collection.books?.length || 0} book
-                      {collection.books?.length !== 1 ? "s" : ""}
-                    </div>
+                      key={collection._id}
+                      href={`/collections/${collection._id}`}
+                      className="block border p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition"
+                    >
+                      <h3 className="font-semibold text-amber-700">
+                        {collection.title}
+                      </h3>
+                      <p className="text-gray-700 text-sm line-clamp-2">
+                        {collection.description}
+                      </p>
+                      <div className="mt-2 text-xs text-gray-500">
+                        {collection.visibility} •{" "}
+                        {collection.books?.length || 0} book
+                        {collection.books?.length !== 1 ? "s" : ""}
+                      </div>
                     </Link>
                   ))}
 
@@ -282,8 +319,19 @@ export default function UserDashboard() {
                       className="px-4 py-2 text-amber-700 border border-amber-200 rounded-md hover:bg-amber-50 flex items-center gap-1 transition-colors"
                     >
                       See All Collections
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-4 h-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                        />
                       </svg>
                     </Link>
                   </div>
@@ -356,8 +404,19 @@ export default function UserDashboard() {
                       className="px-4 py-2 text-amber-700 border border-amber-200 rounded-md hover:bg-amber-50 flex items-center gap-1 transition-colors"
                     >
                       See All Reading Items
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-4 h-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                        />
                       </svg>
                     </Link>
                   </div>
@@ -395,8 +454,176 @@ export default function UserDashboard() {
           )}
 
           {activeTab === "Discussions" && (
-            <div className="text-gray-600 text-center py-4">
-              Discussions feature coming soon
+            <div className="space-y-4">
+              {(discussions || []).length > 0 ? (
+                <>
+                  {discussions.map((discussion) => (
+                    <Link
+                      key={discussion._id}
+                      href={`/discussions/${discussion._id}`}
+                      className="block border p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition"
+                    >
+                      <h3 className="font-semibold text-amber-700">
+                        {discussion.title}
+                      </h3>
+                      <p className="text-gray-700 text-sm line-clamp-2 mt-1">
+                        {discussion.content}
+                      </p>
+                      <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
+                        <span>{discussion.visibility}</span>
+                        {discussion.spoilerAlert && (
+                          <span className="bg-red-100 text-red-700 px-2 py-1 rounded">
+                            Spoiler Alert
+                          </span>
+                        )}
+                      </div>
+                      {discussion.genres && discussion.genres.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {discussion.genres.slice(0, 3).map((genre, index) => (
+                            <span
+                              key={index}
+                              className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full"
+                            >
+                              {genre}
+                            </span>
+                          ))}
+                          {discussion.genres.length > 3 && (
+                            <span className="text-xs text-gray-500">
+                              +{discussion.genres.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </Link>
+                  ))}
+
+                  {/* See More button for Discussions */}
+                  <div className="flex justify-center mt-6">
+                    <Link
+                      href="/discussions"
+                      className="px-4 py-2 text-amber-700 border border-amber-200 rounded-md hover:bg-amber-50 flex items-center gap-1 transition-colors"
+                    >
+                      See All Discussions
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-4 h-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                        />
+                      </svg>
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <p className="text-gray-500 text-center py-4">
+                  You haven&apos;t created any discussions yet
+                </p>
+              )}
+            </div>
+          )}
+
+          {activeTab === "User Books" && (
+            <div className="space-y-4">
+              {(userBooks || []).length > 0 ? (
+                <>
+                  {userBooks.map((book) => (
+                    <Link
+                      key={book._id}
+                      href={`/books/${book._id}`}
+                      className="block border p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0 w-12 h-16 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                          {book.coverImage ? (
+                            <Image
+                              src={book.coverImage}
+                              alt={book.title || "Book cover"}
+                              width={48}
+                              height={64}
+                              className="rounded-md object-cover"
+                              unoptimized={true}
+                            />
+                          ) : (
+                            <span className="text-gray-400 text-xs text-center px-1">
+                              No Image
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-amber-700">
+                            {book.title}
+                          </h3>
+                          <p className="text-gray-700 text-sm line-clamp-2 mt-1">
+                            {book.synopsis}
+                          </p>
+                          <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
+                            <span>{book.visibility}</span>
+                            {book.isCompleted && (
+                              <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
+                                Completed
+                              </span>
+                            )}
+                          </div>
+                          {book.genres && book.genres.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {book.genres
+                                .slice(0, 3)
+                                .map((genre: string, index: number) => (
+                                  <span
+                                    key={index}
+                                    className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full"
+                                  >
+                                    {genre}
+                                  </span>
+                                ))}
+                              {book.genres.length > 3 && (
+                                <span className="text-xs text-gray-500">
+                                  +{book.genres.length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+
+                  {/* See More button for User Books */}
+                  <div className="flex justify-center mt-6">
+                    <Link
+                      href="/books"
+                      className="px-4 py-2 text-amber-700 border border-amber-200 rounded-md hover:bg-amber-50 flex items-center gap-1 transition-colors"
+                    >
+                      See All User Books
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-4 h-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                        />
+                      </svg>
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <p className="text-gray-500 text-center py-4">
+                  You haven&apos;t created any user books yet
+                </p>
+              )}
             </div>
           )}
         </div>

@@ -2,7 +2,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
-import { getAuth, onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
+import {
+  getAuth,
+  onAuthStateChanged,
+  type User as FirebaseUser,
+} from "firebase/auth";
 import { initFirebase } from "@/lib/googleAuth";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,12 +15,12 @@ import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import ReportModal from "@/components/ui/ReportModal";
 
-
 // Initialize Firebase
 initFirebase();
 
 interface User {
   _id: string;
+  uid: string; // Firebase UID
   username: string;
   displayName: string;
   avatar: string;
@@ -120,7 +124,7 @@ export default function BlogViewPage() {
   };
 
   // Check if current user is the blog author
-  const isAuthor = currentUser && blog && currentUser.uid === blog.user._id;
+  const isAuthor = currentUser && blog && currentUser.uid === blog.user.uid;
 
   if (loading) {
     return (
@@ -214,8 +218,8 @@ export default function BlogViewPage() {
               {currentUser && !isAuthor && (
                 <button
                   onClick={() => {
-                    console.log('Report button clicked, blogId:', blogId);
-                    console.log('blog object:', blog);
+                    console.log("Report button clicked, blogId:", blogId);
+                    console.log("blog object:", blog);
                     setShowReportModal(true);
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-amber-700 text-white border border-amber-700 rounded-lg hover:bg-amber-800 hover:border-amber-800 transition-all duration-200 font-medium text-sm shadow-sm"
@@ -237,31 +241,6 @@ export default function BlogViewPage() {
                   </svg>
                   Report
                 </button>
-              )}
-
-              {/* Edit/Delete buttons for author */}
-              {isAuthor && (
-                <Link
-                  href={`/blogs/write?id=${blog._id}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300 transition-all duration-200 font-medium text-sm shadow-sm"
-                  title="Edit blog"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-4 h-4"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-                    />
-                  </svg>
-                  Edit Blog
-                </Link>
               )}
             </div>
           </div>

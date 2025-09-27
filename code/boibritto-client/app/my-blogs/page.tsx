@@ -52,7 +52,7 @@ export default function MyBlogsPage() {
         const response = await axios.get(
           `${
             process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"
-          }/api/blogs?owner=me`,
+          }/api/blogs?author=me`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

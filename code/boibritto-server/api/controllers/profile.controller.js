@@ -2,9 +2,68 @@ import User from "../models/user.models.js";
 import Collection from "../models/collection.models.js";
 import ReadingList from "../models/readingList.models.js";
 import Blog from "../models/blog.models.js";
+import Discussion from "../models/discussion.models.js";
+import UserBook from "../models/userBook.models.js";
 import HTTP from "../utils/httpStatus.js";
 import { sendSuccess, sendError } from "../utils/response.js";
 import { logError } from "../utils/logger.js";
+
+const getAllProfiles = async (req, res) => {
+  try {
+    const { page = 1, search } = req.query;
+    const PAGE_SIZE = 20;
+    let filter = {};
+
+    // Exclude current user from results
+    if (req.user && req.user._id) {
+      filter._id = { $ne: req.user._id };
+    }
+
+    // Search by username or displayName
+    if (search) {
+      const searchConditions = [
+        { username: { $regex: search, $options: "i" } },
+        { displayName: { $regex: search, $options: "i" } },
+      ];
+
+      if (filter._id) {
+        filter.$and = [{ _id: filter._id }, { $or: searchConditions }];
+        delete filter._id;
+      } else {
+        filter.$or = searchConditions;
+      }
+    }
+
+    // Fetch users with minimal profile data
+    const users = await User.find(filter)
+      .select("_id username displayName bio avatar interestedGenres createdAt")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE);
+
+    // Get total count for pagination
+    const totalUsers = await User.countDocuments(filter);
+    const totalPages = Math.ceil(totalUsers / PAGE_SIZE);
+
+    return sendSuccess(res, HTTP.OK, "User profiles fetched successfully", {
+      profiles: users,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalUsers,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
+  } catch (err) {
+    logError("Failed to fetch user profiles", err);
+    return sendError(
+      res,
+      HTTP.INTERNAL_SERVER_ERROR,
+      "Failed to fetch user profiles"
+    );
+  }
+};
 
 const getCurrentProfile = async (req, res) => {
   try {
@@ -33,11 +92,25 @@ const getCurrentProfile = async (req, res) => {
       .sort({ updatedAt: -1 })
       .limit(5);
 
+    const discussions = await Discussion.find({ user: userId })
+      .select("title visibility genres createdAt updatedAt")
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
+    const userBooks = await UserBook.find({ author: userId })
+      .select(
+        "title synopsis genres visibility isCompleted createdAt updatedAt"
+      )
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
     return sendSuccess(res, HTTP.OK, "Profile data fetched successfully", {
       profile_data: user,
       collections,
       reading_tracker: readingTracker,
       blogs,
+      discussions,
+      user_books: userBooks,
     });
   } catch (err) {
     logError("Failed to fetch profile data", err);
@@ -165,6 +238,7 @@ const getPublicProfile = async (req, res) => {
 };
 
 export const ProfileController = {
+  getAllProfiles,
   getCurrentProfile,
   updateCurrentProfile,
   getPublicProfile,
